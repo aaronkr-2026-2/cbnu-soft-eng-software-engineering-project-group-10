@@ -26,3 +26,19 @@ I kept the item-matching feature as optional because it may take too much time f
 
 Something the AI got wrong that I had to catch:
 The AI used the term "Nest.js API Routes" for the backend. I noticed that this was inaccurate because Next.js has API Routes, while NestJS should be used as a separate backend API framework. I corrected the stack to Next.js for the frontend and NestJS for the backend.
+
+---
+
+## Sprint 01 planning and repository diagnosis — 2026-10-07
+
+**Tool(s) used:** Codex, local source inspection, Git, GitHub REST API, npm/ESLint/Vitest/Nest build commands.
+
+**What I asked for:** Independently inspect the CampusFind repository and prepare the sprint-planning homework from the lecture slides: a one-week goal, prioritized labeled issues, two refined items, small tasks, check-ins and a Definition of Done.
+
+**What I kept as-is:** The existing product vision, solo-project structure, Next.js frontend and separate NestJS backend. Application source code was not changed by this planning task.
+
+**Verification and artifacts:** Created `SPRINT_01.md`, linked it from README, and published six labeled GitHub issues (#2–#7). Backend build passed; the existing unit test timed out in setup; frontend lint was stopped without a result. The plan records these limitations and does not claim implementation acceptance checks have passed.
+
+**What I changed or rejected, and why:** The AI-generated plan prioritizes API-backed browsing and broken detail/navigation instead of adding five new features. It explicitly treats the existing login/tasks code as a demo and postpones persistent posting, real authentication, uploads and deployment. Proposed capacity is 16 person-hours (14 planned plus 2 contingency); dates and capacity are assumptions to review, not a confirmed personal schedule.
+
+**Something the AI got wrong that I had to catch:** No new student-caught AI error has been reported in this interaction. This entry was drafted by AI from the actual interaction; the student should review the plan and record any later corrections honestly.

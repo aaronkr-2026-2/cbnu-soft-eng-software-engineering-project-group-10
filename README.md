@@ -22,3 +22,7 @@ In future versions, CampusFind may also provide an intelligent matching system t
 Team Software Engineering Projects
 
 Collect all your software engineering project files, resources, etc here.
+
+## Sprint planning
+
+See [Sprint 01](SPRINT_01.md) for the current diagnosis, prioritized GitHub Issues, one-week scope, acceptance checks, task estimates and Definition of Done.
