@@ -257,8 +257,8 @@ export default function Home() {
                     key={status}
                     onClick={() => setFilter(status)}
                     className={`rounded-xl px-5 py-3 text-sm font-semibold transition ${filter === status
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                   >
                     {status}
@@ -301,8 +301,8 @@ export default function Home() {
 
                   <span
                     className={`absolute left-4 top-4 rounded-full px-3 py-1.5 text-xs font-bold ${item.status === "Lost"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-emerald-100 text-emerald-700"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-emerald-100 text-emerald-700"
                       }`}
                   >
                     {item.status.toUpperCase()}
