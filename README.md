@@ -26,3 +26,13 @@ Collect all your software engineering project files, resources, etc here.
 ## Sprint planning
 
 See [Sprint 01](SPRINT_01.md) for the current diagnosis, prioritized GitHub Issues, one-week scope, acceptance checks, task estimates and Definition of Done.
+
+## Current implementation
+
+The frontend includes a lost-and-found homepage with sample data, keyword search and status filtering. The NestJS backend currently provides a tasks demo and a demo login endpoint. Report APIs and detail pages are planned in Sprint 01.
+
+## Project documents
+
+- [Project scope and intended MVP](Project.md)
+- [Sprint 01 plan and issue links](SPRINT_01.md)
+- [AI collaboration log](AI_LOG.md)

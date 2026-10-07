@@ -35,6 +35,10 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 
 **What I asked for:** Review the current CampusFind code and help prepare a one-week sprint plan, including GitHub Issues, priorities, acceptance checks, task estimates and a Definition of Done.
 
+**My contribution:** I provided the assignment requirements and the existing project as the basis for planning, reviewed the explanation of each homework requirement, and requested revisions to the documentation. I remain responsible for implementing the selected tasks and checking their results.
+
+**AI support:** Codex inspected the repository, proposed backlog priorities and estimates, drafted the sprint document, and created the labeled GitHub Issues.
+
 **What I kept as-is:** The CampusFind product vision, solo-project scope, Next.js frontend and separate NestJS backend.
 
 **What I changed or rejected, and why:** The sprint scope was narrowed to API-backed browsing and the report detail/navigation flow to fit one week. Persistent posting, production authentication, image uploads and deployment were deferred. Detailed checks and estimates are recorded in `SPRINT_01.md`.

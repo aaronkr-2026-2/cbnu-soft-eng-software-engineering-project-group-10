@@ -2,6 +2,8 @@
 
 ## Goal and capacity
 
+**Status:** Planning complete; CF-01 and CF-02 are planned implementation work.
+
 **Goal:** Students can browse lost/found reports from the backend and open a report's details to identify belongings that may be theirs.
 
 - Planning date: 2026-10-07. Proposed sprint: 2026-10-08–2026-10-14 (one week, Asia/Seoul); adjust to the actual class schedule.
@@ -45,7 +47,7 @@ The six GitHub issues are linked at the end of this document. Rank is the execut
 | 5 / CF-05 | Automate report search and filter regression checks | Test | P2 | Refinement | Protect combined search/status behavior as the report data source changes. | Later |
 | 6 / CF-06 | Configure API URL and CORS through environment settings | Engineering | P2 | Consideration | Remove localhost assumptions before a hosted integration. | Later |
 
-CF-01 and CF-02 include their own focused tests; CF-05 adds broader search/filter regression coverage. No claim is made that all six items fit in this sprint.
+CF-01 and CF-02 form the sprint backlog and include their own focused tests. CF-03 through CF-06 remain in the product backlog; CF-05 adds broader search/filter regression coverage in a later sprint.
 
 ## CF-01 — API-backed browsing (8 person-hours)
 
@@ -61,7 +63,7 @@ CF-01 and CF-02 include their own focused tests; CF-05 adds broader search/filte
 
 **Dependencies:** Existing NestJS app and Next.js homepage; agree the small report contract before CF-02 starts. No Supabase account or database provisioning is needed for this demonstration.
 
-**Likely blockers:** Local port/CORS mismatch, backend startup configuration, disagreement between API field names and UI types, and the baseline test timeout recorded below. Diagnose local configuration first; use the agreed contract when developing the UI independently. Investigate the test timeout before adding endpoint tests; use contingency time and reduce scope explicitly if it persists.
+**Likely blockers:** Local port/CORS mismatch, backend startup configuration, disagreement between API field names and UI types, and the timeout in [Baseline verification](#baseline-verification-2026-10-07). Diagnose local configuration first; use the agreed contract when developing the UI independently. Investigate the test timeout before adding endpoint tests; use contingency time and reduce scope explicitly if it persists.
 
 ## CF-02 — Working detail/navigation flow (6 person-hours)
 
