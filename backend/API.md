@@ -1,6 +1,6 @@
-﻿# API tài khoản — bước 1
+﻿# Account API — Step 1
 
-Base URL: `http://127.0.0.1:3001`. Gửi JSON với `Content-Type: application/json`.
+Base URL: `http://127.0.0.1:3001`. Send JSON with `Content-Type: application/json`.
 
 ## Sign up: POST /auth/register
 
@@ -8,14 +8,14 @@ Base URL: `http://127.0.0.1:3001`. Gửi JSON với `Content-Type: application/j
 {
   "email": "student@example.com",
   "password": "ExamplePassword123!",
-  "full_name": "Nguyen Van A",
+  "full_name": "Alex Smith",
   "student_number": "20260001"
 }
 ```
 
-Trả 201 với id, email, full_name, student_number. Mật khẩu dài 12–128 ký tự.
-Trùng email hoặc mã sinh viên trả 409; dữ liệu không hợp lệ trả 400.
-Signup chưa tự đăng nhập; gọi login sau đó.
+Returns 201 with id, email, full_name and student_number. Passwords must contain
+12–128 characters. Duplicate emails or student numbers return 409; invalid input
+returns 400. Registration does not sign the user in automatically; call login next.
 
 ## Log in: POST /auth/login
 
@@ -26,33 +26,35 @@ Signup chưa tự đăng nhập; gọi login sau đó.
 }
 ```
 
-Trả 200 với `access_token`, `token_type: Bearer`, `expires_in: 86400`.
-Sai thông tin trả 401.
+Returns 200 with `access_token`, `token_type: Bearer` and `expires_in: 86400`.
+Incorrect credentials return 401.
 
-## Kiểm tra đăng nhập: GET /auth/me
+## Check the current session: GET /auth/me
 
 Header: `Authorization: Bearer <access_token>`.
-Trả thông tin tài khoản và sinh viên hiện tại, không trả password_hash.
-Token thiếu/hết hạn/đã logout trả 401.
+Returns the current account and student information without password_hash.
+Missing, expired or revoked tokens return 401.
 
 ## Log out: POST /auth/logout
 
-Gửi cùng header Authorization, không cần body.
-Trả `{"success":true}` và hủy phiên tương ứng. Những phiên khác vẫn còn hiệu lực.
+Send the same Authorization header. No request body is required.
+Returns `{"success":true}` and revokes that session. Other sessions remain valid.
 
-## Giới hạn thử đăng nhập
+## Login request limit
 
-`POST /auth/login` nhận tối đa **10 request/IP trong cửa sổ 60 giây**, tính từ
-request đầu tiên. Tính cả request thành công, sai mật khẩu và dữ liệu không hợp lệ.
-Request thứ 11 trả **429** kèm header `Retry-After` (số giây cần chờ), trước khi
-truy vấn tài khoản hoặc băm mật khẩu. Request bị chặn không kéo dài thời gian chờ.
-Các API khác không bị giới hạn bởi cơ chế này.
+`POST /auth/login` accepts up to **10 requests per IP in a 60-second window**,
+starting with the first request. Successful logins, incorrect passwords and
+invalid credential input all count toward the limit. The eleventh request returns
+**429** with a `Retry-After` header indicating how many seconds to wait, before
+querying the account or deriving the password hash. Blocked requests do not extend
+the window. This limiter does not apply to other endpoints.
 
-Bộ đếm nằm trong RAM của một tiến trình và được xóa khi restart; IP dùng chung
-sẽ dùng chung hạn mức. Giới hạn 10.000 IP đang hoạt động để tránh tăng bộ nhớ vô hạn;
-khi đầy, IP mới nhận 429, thử lại sau 60 giây. Dùng địa chỉ kết nối trực tiếp,
-không tin `X-Forwarded-For`. Nếu triển khai qua proxy hoặc nhiều server, cần thiết kế
-lại nhận diện IP và bộ đếm dùng chung. Đây chưa phải bảo vệ đầy đủ trước brute force phân tán.
+Counters are held in one process's memory and reset on restart. Clients sharing
+an IP share the quota. The map holds at most 10,000 active IPs to bound memory use;
+when full, new IPs receive 429 with a 60-second retry interval. The limiter uses
+the direct connection address, not `X-Forwarded-For`. Deploying behind a proxy or
+across multiple servers requires revisiting IP identification and shared counter
+storage. This is not complete protection against distributed brute-force attacks.
 
-Đây là bước học và phát triển local. Chưa có xác minh email, quên mật khẩu
-hoặc giao diện kết nối. Chưa có API bài đăng/chat.
+This is a local development baseline. Email verification, password reset and
+frontend integration are not implemented. Report and chat APIs are not included.
