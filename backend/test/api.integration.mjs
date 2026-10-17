@@ -114,6 +114,32 @@ await test('signup creates user/student atomically; login and logout persist in 
     await request('GET', '/auth/me', undefined, next.access_token, 401);
     await request('GET', '/reports', undefined, null, 404);
     await request('GET', '/conversations', undefined, null, 404);
+    // Three login requests above already consumed this IP's quota.
+    for (let i = 0; i < 7; i++) {
+      await request(
+        'POST',
+        '/auth/login',
+        { email, password: 'incorrect-password' },
+        null,
+        401,
+      );
+    }
+    const blocked = await fetch(base + '/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '192.0.2.99',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    assert.equal(blocked.status, 429);
+    const retryAfter = Number(blocked.headers.get('Retry-After'));
+    assert.ok(retryAfter > 0 && retryAfter <= 60);
+    const sessions = await db.query(
+      'SELECT count(*)::int AS count FROM auth_sessions WHERE user_id=$1',
+      [user.id],
+    );
+    assert.equal(sessions.rows[0].count, 1);
   } finally {
     await db.query('DELETE FROM users WHERE email=ANY($1::text[])', [
       [email, secondEmail],
