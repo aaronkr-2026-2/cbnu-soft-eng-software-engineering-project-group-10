@@ -1,5 +1,14 @@
 # AI_LOG.md
 
+## October 20 signup transaction checks — prepared on 2026-10-19
+
+**Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.
+**What I asked for:** Implement the October 20 backend task and leave committing and pushing to me.
+**What I kept as-is:** Signup service, database schema, and frontend.
+**What I changed or rejected, and why:** Added two concurrent-signup integration cases for duplicate normalized email and duplicate student number. Each checks one 201 and one 409, exactly one linked user/student pair, and a successful retry after correcting the conflicting value. Updated API.md. Existing transaction handling passed, so no service changes were needed.
+**Validation:** Build, seven integration tests against the dedicated test database, and lint passed.
+**Something the AI got wrong that I had to catch:** Earlier explanations confused already committed October 19 tests with new work. This entry describes the newly added October 20 test coverage, implemented on October 19 at my request.
+
 ## Signup required-field tests — 2026-10-19
 
 **Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.

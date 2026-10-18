@@ -33,6 +33,7 @@ await test('signup creates user/student atomically; login and logout persist in 
   const suffix = randomUUID();
   const email = `${suffix}@example.invalid`;
   const secondEmail = `second-${suffix}@example.invalid`;
+  const fixtureEmails = [email, secondEmail];
   const password = `Test-${randomUUID()}`;
   try {
     await app.listen(0, '127.0.0.1');
@@ -118,6 +119,94 @@ await test('signup creates user/student atomically; login and logout persist in 
         .rowCount,
       0,
     );
+    for (const conflict of ['email', 'student_number']) {
+      await t.test(
+        `concurrent signup with duplicate ${conflict} preserves atomicity`,
+        async () => {
+          const marker = randomUUID();
+          const sharedEmail = `${marker}@example.invalid`;
+          const candidates = [
+            { ...signup, email: sharedEmail, student_number: `${marker}-a` },
+            {
+              ...signup,
+              email:
+                conflict === 'email'
+                  ? ` ${sharedEmail.toUpperCase()} `
+                  : `other-${sharedEmail}`,
+              student_number:
+                conflict === 'student_number' ? `${marker}-a` : `${marker}-b`,
+            },
+          ];
+          const emails = candidates.map((candidate) =>
+            candidate.email.trim().toLowerCase(),
+          );
+          fixtureEmails.push(...emails);
+
+          // Send both requests before awaiting either; either request may win.
+          const results = await Promise.all(
+            candidates.map(async (candidate) => {
+              const response = await fetch(base + '/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(candidate),
+              });
+              return { status: response.status, body: await response.json() };
+            }),
+          );
+          assert.deepEqual(
+            results.map((result) => result.status).sort((a, b) => a - b),
+            [201, 409],
+          );
+          const winner = results.findIndex((result) => result.status === 201);
+          const loser = 1 - winner;
+          assert.equal(
+            results[loser].body.message,
+            'Email or student number already registered',
+          );
+
+          const users = await db.query(
+            'SELECT id,email FROM users WHERE email=ANY($1::text[])',
+            [emails],
+          );
+          assert.equal(
+            users.rowCount,
+            1,
+            'The rejected request must not leave an account behind',
+          );
+          assert.equal(users.rows[0].id, results[winner].body.id);
+          const students = await db.query(
+            'SELECT user_id,student_number FROM students WHERE student_number=ANY($1::text[])',
+            [candidates.map((candidate) => candidate.student_number)],
+          );
+          assert.equal(students.rowCount, 1);
+          assert.equal(students.rows[0].user_id, users.rows[0].id);
+          assert.equal(
+            students.rows[0].student_number,
+            candidates[winner].student_number,
+          );
+
+          // Fix only the conflicting value to verify the other value remains usable.
+          const retry = { ...candidates[loser] };
+          if (conflict === 'email') retry.email = `retry-${sharedEmail}`;
+          else retry.student_number = `${marker}-retry`;
+          fixtureEmails.push(retry.email.trim().toLowerCase());
+          const created = await request(
+            'POST',
+            '/auth/register',
+            retry,
+            null,
+            201,
+          );
+          const persisted = await db.query(
+            `SELECT u.id FROM users u JOIN students s ON s.user_id=u.id
+           WHERE u.email=$1 AND s.student_number=$2`,
+            [retry.email.trim().toLowerCase(), retry.student_number],
+          );
+          assert.equal(persisted.rowCount, 1);
+          assert.equal(persisted.rows[0].id, created.id);
+        },
+      );
+    }
     const stored = (
       await db.query('SELECT password_hash FROM users WHERE id=$1', [user.id])
     ).rows[0];
@@ -175,7 +264,7 @@ await test('signup creates user/student atomically; login and logout persist in 
     assert.equal(sessions.rows[0].count, 1);
   } finally {
     await db.query('DELETE FROM users WHERE email=ANY($1::text[])', [
-      [email, secondEmail],
+      fixtureEmails,
     ]);
     await app.close();
     await db.end();

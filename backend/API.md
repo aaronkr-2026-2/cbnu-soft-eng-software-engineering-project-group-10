@@ -17,6 +17,12 @@ Returns 201 with id, email, full_name and student_number. Passwords must contain
 12–128 characters. Duplicate emails or student numbers return 409; invalid input
 returns 400. Registration does not sign the user in automatically; call login next.
 
+Signup creates the user and student in one transaction. Concurrent requests with
+the same email or student number result in one 201 and one 409. Email matching
+ignores case and surrounding whitespace. The rejected request leaves no partial
+user or student record; correcting the conflicting value allows a retry.
+Integration tests cover both concurrent conflict cases and successful retries.
+
 ## Log in: POST /auth/login
 
 ```json
