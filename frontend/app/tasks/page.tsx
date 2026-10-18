@@ -1,132 +1,64 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { fetchTasks, login, Task } from '../../services/api.service';
+import { useState, type FormEvent } from "react";
+import { apiError, fetchTasks, getAccount, login, logout, type Task } from "@/services/api.service";
 
 export default function TasksPage() {
-    const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-    const [nickname, setNickname] = useState('');
-    const [password, setPassword] = useState('');
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    let issuedToken = "";
+    try {
+      const result = await login(email.trim(), password);
+      issuedToken = result.access_token;
+      const [account, records] = await Promise.all([getAccount(issuedToken), fetchTasks()]);
+      setName(account.full_name);
+      setTasks(records);
+      setToken(issuedToken);
+      setPassword("");
+    } catch (cause) {
+      if (issuedToken) await logout(issuedToken).catch(() => undefined);
+      setError(apiError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
 
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [message, setMessage] = useState('');
+  async function signOut() {
+    setBusy(true);
+    setError("");
+    try {
+      await logout(token);
+      setToken("");
+      setTasks([]);
+      setName("");
+    } catch (cause) {
+      setError(apiError(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
 
-    const handleSignIn = async () => {
-        try {
-            // 1. Gửi nickname/password sang NestJS
-            const result = await login(nickname, password);
-
-            // 2. Nếu sai account/password
-            if (!result.success) {
-                setMessage(result.message);
-                return;
-            }
-
-            // 3. Login thành công
-            setIsLoggedIn(true);
-            setMessage(`Welcome ${result.user?.nickname}`);
-
-            // 4. Lấy tasks từ backend
-            const taskData = await fetchTasks();
-            setTasks(taskData);
-
-        } catch (error) {
-            console.error(error);
-            setMessage('Cannot connect to backend');
-        }
-    };
-
-    return (
-        <main className="flex min-h-screen flex-col items-center p-24">
-
-            {!isLoggedIn ? (
-                <>
-                    <h1 className="text-4xl font-bold mb-8">
-                        Login
-                    </h1>
-
-                    <div className="w-full max-w-md p-6 bg-gray-800 rounded">
-
-                        <div className="mb-4">
-                            <label className="block mb-2">
-                                Nickname
-                            </label>
-
-                            <input
-                                type="text"
-                                value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                                className="w-full p-2 text-black rounded"
-                                placeholder="Enter nickname"
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block mb-2">
-                                Password
-                            </label>
-
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full p-2 text-black rounded"
-                                placeholder="Enter password"
-                            />
-                        </div>
-
-                        <button
-                            onClick={handleSignIn}
-                            className="w-full px-4 py-2 bg-blue-500 text-white rounded"
-                        >
-                            Sign in
-                        </button>
-
-                        {message && (
-                            <p className="mt-4 text-center">
-                                {message}
-                            </p>
-                        )}
-
-                    </div>
-                </>
-            ) : (
-                <>
-                    <h1 className="text-4xl font-bold mb-4">
-                        Tasks
-                    </h1>
-
-                    <p className="mb-8">
-                        {message}
-                    </p>
-
-                    <div className="w-full max-w-md">
-
-                        {tasks.map((task) => (
-                            <div
-                                key={task.id}
-                                className="flex items-center justify-between p-4 bg-gray-800 rounded mb-2"
-                            >
-                                <span>
-                                    {task.title}
-                                </span>
-
-                                <span
-                                    className={`px-2 py-1 rounded ${task.isCompleted
-                                            ? 'bg-green-500 text-black'
-                                            : 'bg-yellow-500 text-black'
-                                        }`}
-                                >
-                                    {task.isCompleted ? 'Done' : 'Pending'}
-                                </span>
-                            </div>
-                        ))}
-
-                    </div>
-                </>
-            )}
-
-        </main>
-    );
+  return <div className="container-page max-w-2xl py-12">
+    <h1 className="text-3xl font-bold">Backend tasks demo</h1>
+    <p className="my-4 text-sm text-slate-600">This page uses the PostgreSQL account API. The CampusFind listing pages still use a separate browser-local demo session. Create a backend account through POST /auth/register before signing in here.</p>
+    {!token ? <form onSubmit={signIn} className="card-base space-y-5 p-6">
+      <div><label htmlFor="task-email" className="label-base">Email</label><input id="task-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} className="input-base" /></div>
+      <div><label htmlFor="task-password" className="label-base">Password</label><input id="task-password" type="password" autoComplete="current-password" required minLength={12} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} className="input-base" /></div>
+      <button disabled={busy} className="btn-primary">{busy ? "Signing in..." : "Sign in"}</button>
+    </form> : <div className="space-y-4">
+      <div className="flex items-center justify-between"><p>Welcome {name}</p><button disabled={busy} onClick={signOut} className="btn-secondary">Log out</button></div>
+      {tasks.map(task => <div key={task.id} className="card-base flex justify-between gap-4 p-4"><span>{task.title}</span><span>{task.isCompleted ? "Done" : "Pending"}</span></div>)}
+    </div>}
+    {error && <p role="alert" className="mt-4 text-sm text-rose-700">{error}</p>}
+  </div>;
 }

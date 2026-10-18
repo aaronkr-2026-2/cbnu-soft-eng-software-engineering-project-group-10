@@ -1,5 +1,45 @@
 # AI_LOG.md
 
+## Signup required-field tests — 2026-10-19
+
+**Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.
+**What I asked for:** Add small integration tests for missing signup fields and leave committing and pushing to me.
+**What I kept as-is:** Existing API validation, database schema, and authentication behavior.
+**What I changed or rejected, and why:** Added four named cases omitting email, password, full_name, or student_number. Each checks HTTP 400 and unchanged users/students row counts in the dedicated test database. No new features or migrations were needed.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment.
+
+## Small backend increment: login rate limit — 2026-10-17
+
+**Tool(s) used:** Codex, NestJS guard documentation, local test tools.
+**What I asked for:** Add a small useful backend mechanism for the next contribution.
+**What I kept as-is:** Existing authentication and database schema.
+**What I changed or rejected, and why:** Added only a per-IP login request limit with 429/Retry-After, unit and integration checks, and API documentation. No new business features or database migration.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The implementation explicitly documents single-process and shared-IP limitations.
+
+## Scope correction: start with accounts only — 2026-10-13
+
+**Tool(s) used:** Codex and local PostgreSQL.
+**What I asked for:** Undo the oversized implementation and start with database connection, users/students, signup, login and logout.
+**What I kept as-is:** PostgreSQL connection and secure password/session handling.
+**What I changed or rejected, and why:** Removed report/chat code, their active migrations, benchmark plan and unused setup/testing dependencies. Created a fresh small database; preserved the old database and a dump under ignored .local/previous-scope. Earlier entries below describe work now superseded by this smaller scope.
+**Something the AI got wrong that I had to catch:** The assistant implemented too many features at once for a project with two months remaining. I asked for smaller, understandable increments.
+
+## Local PostgreSQL and REST API implementation — 2026-10-13
+
+**Tool(s) used:** Codex, official PostgreSQL/EDB and NestJS documentation, Node.js, local PostgreSQL 17.11.
+**What I asked for:** Prepare local PostgreSQL, apply migrations and build APIs on the agreed schema.
+**What I kept as-is:** NestJS and PostgreSQL; existing frontend left for subsequent integration.
+**What I changed or rejected, and why:** Added portable PostgreSQL, private generated credentials, a separate test database, persistent auth sessions, report APIs and chat storage APIs. Disabled placeholder Observe instrumentation. Added real PostgreSQL HTTP integration tests rather than relying only on embedded schema checks.
+**Something the AI got wrong that I had to catch:** During implementation, a test connection URL was initially generated with a broad string replacement that also changed the username. Codex corrected it with URL pathname parsing before rerunning the passing integration test; no user intervention was claimed.
+
+## Local PostgreSQL schema and benchmark preparation — 2026-10-13
+
+**Tool(s) used:** Codex, terminal, official PostgreSQL and PGlite documentation.
+**What I asked for:** Connect PostgreSQL, define tables including chat, and prioritize a working backend with measured performance before large-scale claims.
+**What I kept as-is:** NestJS, relational business data, and existing demo endpoints.
+**What I changed or rejected, and why:** Replaced the unapplied Supabase-specific schema with local PostgreSQL migrations; added chat membership/retry constraints, setup documentation and a benchmark plan. No million-RPS claim is made.
+**Something the AI got wrong that I had to catch:** The initial local-versus-cloud recommendation was too quick; further discussion separated database size, concurrency and request throughput. Live database setup still depends on an available PostgreSQL server.
+
 Every time you update your project, please make a note of what you did in the `AI_LOG.md` file, according to the following template.
 
 ---
@@ -44,3 +84,11 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **What I changed or rejected, and why:** The sprint scope was narrowed to API-backed browsing and the report detail/navigation flow to fit one week. Persistent posting, production authentication, image uploads and deployment were deferred. Detailed checks and estimates are recorded in `SPRINT_01.md`.
 
 **Something the AI got wrong that I had to catch:** The initial AI log included unnecessary review reminders and process commentary. I asked for a shorter entry focused on the required fields.
+
+## English documentation correction — 2026-10-17
+
+**Tool(s) used:** Codex.
+**What I asked for:** Keep project content in English and leave commits and pushes to me.
+**What I kept as-is:** API behavior, schema and application logic.
+**What I changed or rejected, and why:** Translated backend API/setup documentation and the remaining Vietnamese frontend comments. Unstaged the previously prepared full-project addition; no commit or push was performed in this correction.
+**Something the AI got wrong that I had to catch:** The assistant had written project documentation in Vietnamese. I clarified that project content must be in English and that I will handle future pushes myself.

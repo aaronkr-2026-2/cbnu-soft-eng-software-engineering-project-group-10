@@ -25,7 +25,7 @@ Open http://localhost:3000. Validation commands: `npm run lint` and `npm run bui
 | `/post` | Report a lost or found item; sign-in required |
 | `/my-posts` | Current user's reports and recovery counts |
 | `/profile` | Update display name and log out |
-| `/tasks` | Existing backend tasks demo |
+| `/tasks` | Backend tasks demo with email/password login and token logout |
 
 The new routes were integrated from `CampusFind-New-Routes-Patch`. The homepage keeps its hero, search, process, and call-to-action sections while sharing navigation and listing data with the new routes. Patch styles have been merged into the existing Tailwind v4 stylesheet.
 
@@ -44,3 +44,7 @@ These routes use `lib/store.tsx` and `lib/data.ts`, not the NestJS API. Login do
 Items and session are stored in `campusfind-demo-items-v1` and `campusfind-demo-session-v1` in localStorage. Data is specific to this browser and origin. Clear these keys and reload to reset the demo. Browser storage limits apply, especially when saving images.
 
 Real accounts, shared reports, durable image uploads, and authorization require backend integration.
+
+## Backend tasks screen
+
+`/tasks` uses the NestJS email/token API and is separate from the listing demo session. Set up PostgreSQL and create an account using `POST /auth/register` as documented in `../backend/API.md`. Passwords for this API must be 12?128 characters. The API defaults to `http://localhost:3001`; set `NEXT_PUBLIC_API_URL` in `.env.local` to override it before starting/building Next.js.

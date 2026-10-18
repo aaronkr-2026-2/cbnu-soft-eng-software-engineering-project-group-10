@@ -29,7 +29,7 @@ See [Sprint 01](SPRINT_01.md) for the current diagnosis, prioritized GitHub Issu
 
 ## Current implementation
 
-The frontend includes a lost-and-found homepage and integrated routes for browsing/filtering items, item details, demo login/registration, creating/editing posts, recovery status, my posts, and profile settings. These screens share sample data and browser localStorage; they are not connected to the backend yet. The NestJS backend currently provides a tasks demo and a demo login endpoint. See [frontend setup and demo flow](frontend/README.md).
+The frontend includes a lost-and-found homepage and integrated routes for browsing/filtering items, item details, demo login/registration, creating/editing posts, recovery status, my posts, and profile settings. These screens share sample data and browser localStorage; they are not connected to the backend yet. The NestJS backend provides PostgreSQL-backed registration, email/password login, bearer sessions, logout, and a tasks demo. The `/tasks` screen uses this backend API; the listing screens still use their separate local demo session. See [backend setup](backend/README.md). See [frontend setup and demo flow](frontend/README.md).
 
 ## Project documents
 
