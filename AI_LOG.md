@@ -1,5 +1,13 @@
 # AI_LOG.md
 
+## Signup required-field tests — 2026-10-19
+
+**Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.
+**What I asked for:** Add small integration tests for missing signup fields and leave committing and pushing to me.
+**What I kept as-is:** Existing API validation, database schema, and authentication behavior.
+**What I changed or rejected, and why:** Added four named cases omitting email, password, full_name, or student_number. Each checks HTTP 400 and unchanged users/students row counts in the dedicated test database. No new features or migrations were needed.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment.
+
 ## Small backend increment: login rate limit — 2026-10-17
 
 **Tool(s) used:** Codex, NestJS guard documentation, local test tools.

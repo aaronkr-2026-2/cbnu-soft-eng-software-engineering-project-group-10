@@ -24,7 +24,7 @@ assert.equal(migration.status, 0, migration.stderr);
 const { NestFactory } = await import('@nestjs/core');
 const { AppModule } = await import('../dist/app.module.js');
 
-await test('signup creates user/student atomically; login and logout persist in PostgreSQL', async () => {
+await test('signup creates user/student atomically; login and logout persist in PostgreSQL', async (t) => {
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   const app = await NestFactory.create(AppModule, {
     logger: false,
@@ -56,6 +56,39 @@ await test('signup creates user/student atomically; login and logout persist in 
       full_name: 'Test Student',
       student_number: suffix,
     };
+    for (const field of ['email', 'password', 'full_name', 'student_number']) {
+      await t.test(
+        `signup rejects missing ${field} without creating records`,
+        async () => {
+          const incompleteSignup = { ...signup };
+          delete incompleteSignup[field];
+          // This suite runs sequentially against the dedicated test database.
+          // Check both tables, including the missing-email case where there is
+          // no submitted email available to identify an accidental user record.
+          const countsSql = `SELECT
+          (SELECT count(*)::int FROM users) AS users,
+          (SELECT count(*)::int FROM students) AS students`;
+          const before = (await db.query(countsSql)).rows[0];
+
+          const result = await request(
+            'POST',
+            '/auth/register',
+            incompleteSignup,
+            null,
+            400,
+          );
+
+          assert.equal(result.statusCode, 400);
+          assert.equal(result.error, 'Bad Request');
+          const after = (await db.query(countsSql)).rows[0];
+          assert.deepEqual(
+            after,
+            before,
+            `Missing ${field} must not create a user or student`,
+          );
+        },
+      );
+    }
     await request(
       'POST',
       '/auth/register',
