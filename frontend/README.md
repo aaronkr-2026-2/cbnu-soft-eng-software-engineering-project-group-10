@@ -31,7 +31,7 @@ The new routes were integrated from `CampusFind-New-Routes-Patch`. The homepage 
 
 ## Demo walkthrough
 
-1. Register with a name, valid email, and any password of at least six characters.
+1. Register with a full name, student number, valid email, and a password of 12-128 characters. This still creates only a local preview session; the student number and password are not saved or submitted to the backend.
 2. Create a post with a title, category, location, date, and description; optionally upload a JPG/PNG/WebP image under 1 MB.
 3. Open the post from the homepage, browse page, or My posts.
 4. Edit the post, mark it recovered, reopen it, or delete it as its author.
@@ -47,4 +47,4 @@ Real accounts, shared reports, durable image uploads, and authorization require 
 
 ## Backend tasks screen
 
-`/tasks` uses the NestJS email/token API and is separate from the listing demo session. Set up PostgreSQL and create an account using `POST /auth/register` as documented in `../backend/API.md`. Passwords for this API must be 12?128 characters. The API defaults to `http://localhost:3001`; set `NEXT_PUBLIC_API_URL` in `.env.local` to override it before starting/building Next.js.
+`/tasks` uses the NestJS email/token API and is separate from the listing demo session. Set up PostgreSQL and create an account using `POST /auth/register` as documented in `../backend/API.md`. Passwords for this API must be 12-128 characters. The API defaults to `http://localhost:3001`; set `NEXT_PUBLIC_API_URL` in `.env.local` to override it before starting/building Next.js.
