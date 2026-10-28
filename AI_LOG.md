@@ -101,3 +101,12 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **What I kept as-is:** API behavior, schema and application logic.
 **What I changed or rejected, and why:** Translated backend API/setup documentation and the remaining Vietnamese frontend comments. Unstaged the previously prepared full-project addition; no commit or push was performed in this correction.
 **Something the AI got wrong that I had to catch:** The assistant had written project documentation in Vietnamese. I clarified that project content must be in English and that I will handle future pushes myself.
+
+## Backend plan October 21–28 — implemented on 2026-10-28
+
+**Tool(s) used:** Codex, Node.js test runner, Vitest, local PostgreSQL.
+**What I asked for:** Complete the remaining backend plan through October 28 after a break, without editing frontend or pushing commits.
+**What I kept as-is:** Existing signup/login/session logic, applied migrations and frontend files.
+**What I changed or rejected, and why:** Added validated PORT/CORS_ORIGINS configuration and startup URL reporting; covered missing/malformed/unknown tokens, wrong credentials, independent sessions, repeated logout, CORS and safe database-error responses. Documented session lifetime, in-memory client token policy, error handling and local setup. Proposed reports/categories/locations in REPORTS_SCHEMA.md without implementing later migrations or chat.
+**Validation:** Build, 12 integration tests and 18 unit tests passed against the dedicated test environment. Lint was rerun after correcting an unbound-method warning in the test stub.
+**Something the AI got wrong that I had to catch:** No user correction recorded in this increment. All work was performed on October 28; the plan dates are scope labels, not claimed implementation dates.

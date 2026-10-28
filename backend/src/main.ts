@@ -1,20 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import { httpConfig } from './config/http.config.js';
 
 async function bootstrap() {
+  const config = httpConfig();
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: 'http://localhost:3000',
-  });
+  app.enableCors(config.cors);
   app.enableShutdownHooks();
 
-  await app.listen(Number(process.env.PORT ?? 3001), '127.0.0.1');
+  await app.listen(config.port, '127.0.0.1');
 
-  console.log('Backend running at http://localhost:3001');
+  console.log(`Backend running at http://127.0.0.1:${config.port}`);
 }
 
 bootstrap().catch(() => {
-  console.error('Backend startup failed. Check database configuration and startup logs.');
+  console.error(
+    'Backend startup failed. Check database configuration and startup logs.',
+  );
   process.exitCode = 1;
 });

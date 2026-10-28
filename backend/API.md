@@ -64,3 +64,35 @@ storage. This is not complete protection against distributed brute-force attacks
 
 This is a local development baseline. Email verification, password reset and
 frontend integration are not implemented. Report and chat APIs are not included.
+
+## Session policy and errors
+
+Login returns an opaque Bearer token, not a JWT. Each login creates a separate
+session lasting 24 hours. Requests do not extend it; there is no refresh token.
+A page reload does not revoke the server session, but the client must still
+possess the token to call /auth/me. For initial integration, keep tokens in
+memory; a full reload then requires login again. Persistent login and HttpOnly
+cookies are future decisions. The localStorage demo profile is not authentication.
+Never put tokens in URLs or logs.
+
+Logout revokes only the supplied session; other sessions remain valid. Missing,
+malformed, unknown, expired and revoked tokens return 401. Repeated logout also
+returns 401. On 401, clear client authentication state and request login again.
+Expired rows can remain in the database but cannot authorize requests.
+
+Errors contain statusCode and message, plus error for standard HTTP exceptions.
+Handle the status code rather than matching message text:
+
+| Status | Meaning | Client action |
+| --- | --- | --- |
+| 400 | Invalid input | Correct form data |
+| 401 | Invalid credentials or session | Show login error or sign in again |
+| 409 | Duplicate email/student number | Correct conflicting data |
+| 429 | Login attempt limit | Wait for Retry-After seconds |
+| 500 | Unexpected failure | Show a generic retry message |
+
+Unknown accounts and wrong passwords return the same Invalid email or password
+message for otherwise valid input. Unexpected errors return Internal server error
+without SQL, passwords or stack traces in the HTTP response. Server diagnostics
+are private and must not be published. Network/CORS failures can have no readable
+HTTP response; display a connection error in that case.

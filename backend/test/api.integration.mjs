@@ -23,6 +23,9 @@ const migration = spawnSync(process.execPath, ['scripts/migrate.mjs'], {
 assert.equal(migration.status, 0, migration.stderr);
 const { NestFactory } = await import('@nestjs/core');
 const { AppModule } = await import('../dist/app.module.js');
+const { httpConfig } = await import('../dist/config/http.config.js');
+const { DatabaseService } =
+  await import('../dist/database/database.service.js');
 
 await test('signup creates user/student atomically; login and logout persist in PostgreSQL', async (t) => {
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -34,6 +37,7 @@ await test('signup creates user/student atomically; login and logout persist in 
   const email = `${suffix}@example.invalid`;
   const secondEmail = `second-${suffix}@example.invalid`;
   const fixtureEmails = [email, secondEmail];
+  app.enableCors(httpConfig({ CORS_ORIGINS: 'http://localhost:3000' }).cors);
   const password = `Test-${randomUUID()}`;
   try {
     await app.listen(0, '127.0.0.1');
@@ -57,6 +61,47 @@ await test('signup creates user/student atomically; login and logout persist in 
       full_name: 'Test Student',
       student_number: suffix,
     };
+    await t.test('CORS permits the configured frontend only', async () => {
+      for (const origin of [
+        'http://localhost:3000',
+        'https://untrusted.example',
+      ]) {
+        const response = await fetch(base + '/auth/login', {
+          method: 'OPTIONS',
+          headers: {
+            Origin: origin,
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'authorization,content-type',
+          },
+        });
+        assert.equal(
+          response.headers.get('Access-Control-Allow-Origin'),
+          origin === 'http://localhost:3000' ? origin : null,
+        );
+      }
+    });
+    await t.test(
+      'missing, malformed and unknown tokens return 401',
+      async () => {
+        for (const path of ['/auth/me', '/auth/logout']) {
+          for (const header of [
+            undefined,
+            'Basic invalid',
+            'Bearer short',
+            `Bearer ${'0'.repeat(64)}`,
+          ]) {
+            const response = await fetch(base + path, {
+              method: path.endsWith('logout') ? 'POST' : 'GET',
+              headers: header ? { Authorization: header } : {},
+            });
+            assert.equal(response.status, 401);
+            const body = await response.json();
+            assert.equal(body.statusCode, 401);
+            assert.equal(body.error, 'Unauthorized');
+          }
+        }
+      },
+    );
     for (const field of ['email', 'password', 'full_name', 'student_number']) {
       await t.test(
         `signup rejects missing ${field} without creating records`,
@@ -211,12 +256,34 @@ await test('signup creates user/student atomically; login and logout persist in 
       await db.query('SELECT password_hash FROM users WHERE id=$1', [user.id])
     ).rows[0];
     assert.notEqual(stored.password_hash, password);
-    await request(
+    const wrongPassword = await request(
       'POST',
       '/auth/login',
       { email, password: 'wrong-password-value' },
       null,
       401,
+    );
+    await t.test(
+      'unknown account and wrong password share a safe error',
+      async () => {
+        const unknownAccount = await request(
+          'POST',
+          '/auth/login',
+          {
+            email: `unknown-${suffix}@example.invalid`,
+            password,
+          },
+          null,
+          401,
+        );
+        assert.deepEqual(unknownAccount, wrongPassword);
+        assert.equal(unknownAccount.message, 'Invalid email or password');
+        const count = await db.query(
+          'SELECT count(*)::int AS count FROM auth_sessions WHERE user_id=$1',
+          [user.id],
+        );
+        assert.equal(count.rows[0].count, 0);
+      },
     );
     const { access_token: token } = await request('POST', '/auth/login', {
       email,
@@ -226,18 +293,60 @@ await test('signup creates user/student atomically; login and logout persist in 
     assert.equal(me.full_name, signup.full_name);
     assert.equal(me.student_number, suffix);
     await request('GET', '/auth/me', undefined, null, 401);
-    await request('POST', '/auth/logout', undefined, token);
-    await request('GET', '/auth/me', undefined, token, 401);
     const next = await request('POST', '/auth/login', { email, password });
+    await t.test(
+      'logout revokes only its session and repeated logout returns 401',
+      async () => {
+        assert.notEqual(next.access_token, token);
+        assert.equal(next.expires_in, 86400);
+        await request('POST', '/auth/logout', undefined, token);
+        await request('GET', '/auth/me', undefined, token, 401);
+        await request('POST', '/auth/logout', undefined, token, 401);
+        const remaining = await request(
+          'GET',
+          '/auth/me',
+          undefined,
+          next.access_token,
+        );
+        assert.equal(remaining.id, user.id);
+      },
+    );
     await db.query(
       "UPDATE auth_sessions SET expires_at=now()-interval '1 second' WHERE user_id=$1",
       [user.id],
     );
     await request('GET', '/auth/me', undefined, next.access_token, 401);
+    await request('POST', '/auth/logout', undefined, next.access_token, 401);
+    await t.test(
+      'unexpected database errors do not expose internal details',
+      async () => {
+        const pool = app.get(DatabaseService).pool;
+      const original = pool.query.bind(pool);
+        try {
+          pool.query = () => {
+            throw new Error('SELECT secret_password FROM private_table');
+          };
+          const result = await request(
+            'GET',
+            '/auth/me',
+            undefined,
+            next.access_token,
+            500,
+          );
+          assert.equal(result.message, 'Internal server error');
+          assert.equal(
+            JSON.stringify(result).includes('secret_password'),
+            false,
+          );
+        } finally {
+          pool.query = original;
+        }
+      },
+    );
     await request('GET', '/reports', undefined, null, 404);
     await request('GET', '/conversations', undefined, null, 404);
-    // Three login requests above already consumed this IP's quota.
-    for (let i = 0; i < 7; i++) {
+    // Four login requests above already consumed this IP's quota.
+    for (let i = 0; i < 6; i++) {
       await request(
         'POST',
         '/auth/login',

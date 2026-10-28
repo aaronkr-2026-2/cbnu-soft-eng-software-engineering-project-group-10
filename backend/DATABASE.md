@@ -29,3 +29,6 @@ The old `campusfind` and `campusfind_test` databases remain as local backups and
 are no longer used by the application. A dump and the old migrations are stored
 in `.local/previous-scope/`. Do not edit migrations already applied to the old
 databases; this smaller implementation uses new databases and a separate migration history.
+
+The next reports/categories/locations design is in [REPORTS_SCHEMA.md](REPORTS_SCHEMA.md).
+It is a proposal only; the live schema remains unchanged.
