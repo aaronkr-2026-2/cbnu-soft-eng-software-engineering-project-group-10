@@ -92,3 +92,12 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **What I kept as-is:** API behavior, schema and application logic.
 **What I changed or rejected, and why:** Translated backend API/setup documentation and the remaining Vietnamese frontend comments. Unstaged the previously prepared full-project addition; no commit or push was performed in this correction.
 **Something the AI got wrong that I had to catch:** The assistant had written project documentation in Vietnamese. I clarified that project content must be in English and that I will handle future pushes myself.
+
+## Frontend account integration through October 28 — 2026-10-28
+
+**Tool(s) used:** Codex, Next.js local documentation, ESLint, Next.js build, Playwright with Microsoft Edge.
+**What I asked for:** Implement the frontend plan through October 28 on Thanh; leave commit and push to me.
+**What I kept as-is:** Backend code and database, existing listing fixtures and visual layout.
+**What I changed or rejected, and why:** Connected registration/login/me/logout to the shared API service; added pending/error handling and duplicate-submit guards. Replaced localStorage demo authentication with an in-memory token and server account data, expiry/focus checks and retryable logout. Made profile read-only because the backend has no profile-update endpoint. Added public environment example, setup/session documentation and a card/detail design proposal. Listing persistence remains a local demo.
+**Validation:** ESLint and production build passed. Edge browser checks with mocked API responses passed for required signup fields, 409, pending state, registration success, wrong/correct login, profile, failed/successful logout, reload sign-out and 401 expiry; no browser exceptions or mobile horizontal overflow. This does not claim end-to-end PostgreSQL verification.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The initial workspace pointed at Tung; the matching frontend checkout on Thanh was identified before editing.

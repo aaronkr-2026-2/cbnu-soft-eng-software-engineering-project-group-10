@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useRef, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, IdCard, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { AuthShell } from "@/components/auth-shell";
-import { useCampus } from "@/lib/store";
+import { apiError, register } from "@/services/api.service";
 import { validateSignup, type SignupFields } from "@/lib/signup-validation";
 
 const inputs = [
@@ -17,7 +17,9 @@ const inputs = [
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const { signIn } = useCampus();
+  const pending = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const [fields, setFields] = useState<SignupFields>({ full_name: "", student_number: "", email: "", password: "", agree: false });
   const [touched, setTouched] = useState<Partial<Record<keyof SignupFields, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -25,7 +27,7 @@ function RegisterForm() {
   const errors = validateSignup(fields);
   const visibleError = (key: keyof SignupFields) => (submitted || touched[key]) ? errors[key] : undefined;
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
     const firstInvalid = (Object.keys(errors) as (keyof SignupFields)[])[0];
@@ -33,10 +35,17 @@ function RegisterForm() {
       document.getElementById(`register-${firstInvalid}`)?.focus();
       return;
     }
-    // Local preview only; API registration is the next scheduled integration.
-    signIn({ name: fields.full_name.trim(), email: fields.email.trim().toLowerCase() });
-    const next = params.get("next") || "/my-posts";
-    router.replace(next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/my-posts");
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await register({ full_name: fields.full_name.trim(), student_number: fields.student_number.trim(), email: fields.email.trim().toLowerCase(), password: fields.password });
+      const next = params.get("next") || "/my-posts";
+      router.replace(`/login?registered=1&next=${encodeURIComponent(next)}`);
+    } catch (cause) { setError(apiError(cause)); }
+    finally { pending.current = false; setBusy(false); }
+
   }
 
   return <AuthShell mode="register" title="Create your account." description="One account. One campus community. More lost items finding their way home.">
@@ -79,8 +88,9 @@ function RegisterForm() {
         </label>
         {visibleError("agree") && <p id="register-agree-error" aria-live="polite" className="mt-2 text-sm text-rose-700">{visibleError("agree")}</p>}
       </div>
-      <button className="btn-primary !py-3.5 w-full" type="submit">Create account <ArrowRight size={18} /></button>
-      <p className="rounded-xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800"><strong>UI demo mode:</strong> This creates a local preview session only, not a backend account. Your password and student number are not saved or sent to the server.</p>
+      {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
+      <button disabled={busy} aria-busy={busy} className="btn-primary !py-3.5 w-full" type="submit">{busy ? "Creating account..." : "Create account"} <ArrowRight size={18} /></button>
+      <p className="rounded-xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800">After registration, sign in with your email and password. Email ownership and student status are not verified yet.</p>
     </form>
   </AuthShell>;
 }

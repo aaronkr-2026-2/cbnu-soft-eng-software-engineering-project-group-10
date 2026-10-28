@@ -48,7 +48,7 @@ export function SiteHeader() {
         <nav className="flex flex-col gap-2" aria-label="Mobile navigation">
           {routes.map((route) => <Link key={route.href} href={route.href} onClick={close} className="rounded-lg px-3 py-3 font-medium text-slate-700 hover:bg-slate-50">{route.label}</Link>)}
           <Link href="/post" onClick={close} className="btn-primary mt-2"><Plus size={17}/> Post an item</Link>
-          {session ? <><Link href="/profile" onClick={close} className="btn-secondary">My profile</Link><button onClick={() => { signOut(); close(); router.push('/'); }} className="btn-quiet">Log out</button></> : <><Link href="/login" onClick={close} className="btn-secondary">Log in</Link><Link href="/register" onClick={close} className="btn-secondary">Create account</Link></>}
+          {session ? <><Link href="/profile" onClick={close} className="btn-secondary">My profile</Link><button onClick={async () => { if (await signOut()) { close(); router.push('/'); } }} className="btn-quiet">Log out</button></> : <><Link href="/login" onClick={close} className="btn-secondary">Log in</Link><Link href="/register" onClick={close} className="btn-secondary">Create account</Link></>}
         </nav>
       </div>}
     </header>
