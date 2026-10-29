@@ -96,3 +96,9 @@ message for otherwise valid input. Unexpected errors return Internal server erro
 without SQL, passwords or stack traces in the HTTP response. Server diagnostics
 are private and must not be published. Network/CORS failures can have no readable
 HTTP response; display a connection error in that case.
+
+## Planned reports API
+
+See [REPORTS_API.md](REPORTS_API.md) for the proposed public list/detail contract,
+response types, fictional fixtures and cursor pagination rules. Reports endpoints
+remain unimplemented until the later migration/read-API steps.

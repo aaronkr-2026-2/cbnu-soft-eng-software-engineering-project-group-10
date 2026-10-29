@@ -52,3 +52,13 @@ in _test, applies migrations and removes generated test accounts afterward. Neve
 use real student data. Run npm test and npm run lint as additional checks.
 See API.md for session/error behavior and REPORTS_SCHEMA.md for the proposed next
 schema. Reports migrations and endpoints are not implemented yet.
+
+## Reports preparation and week-two review
+
+- [Reports API contract and pagination](REPORTS_API.md)
+- [Schema proposal](REPORTS_SCHEMA.md)
+- [Week-two review and remaining work](WEEK_02_REVIEW.md)
+
+The TypeScript reports contract and fixtures compile with the backend, but do not
+register routes or create database records. They prepare coordination with the
+frontend before the planned migration step.
