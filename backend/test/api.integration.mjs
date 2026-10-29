@@ -23,6 +23,9 @@ const migration = spawnSync(process.execPath, ['scripts/migrate.mjs'], {
 assert.equal(migration.status, 0, migration.stderr);
 const { NestFactory } = await import('@nestjs/core');
 const { AppModule } = await import('../dist/app.module.js');
+const { httpConfig } = await import('../dist/config/http.config.js');
+const { DatabaseService } =
+  await import('../dist/database/database.service.js');
 
 await test('signup creates user/student atomically; login and logout persist in PostgreSQL', async (t) => {
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -33,6 +36,8 @@ await test('signup creates user/student atomically; login and logout persist in 
   const suffix = randomUUID();
   const email = `${suffix}@example.invalid`;
   const secondEmail = `second-${suffix}@example.invalid`;
+  const fixtureEmails = [email, secondEmail];
+  app.enableCors(httpConfig({ CORS_ORIGINS: 'http://localhost:3000' }).cors);
   const password = `Test-${randomUUID()}`;
   try {
     await app.listen(0, '127.0.0.1');
@@ -56,6 +61,47 @@ await test('signup creates user/student atomically; login and logout persist in 
       full_name: 'Test Student',
       student_number: suffix,
     };
+    await t.test('CORS permits the configured frontend only', async () => {
+      for (const origin of [
+        'http://localhost:3000',
+        'https://untrusted.example',
+      ]) {
+        const response = await fetch(base + '/auth/login', {
+          method: 'OPTIONS',
+          headers: {
+            Origin: origin,
+            'Access-Control-Request-Method': 'POST',
+            'Access-Control-Request-Headers': 'authorization,content-type',
+          },
+        });
+        assert.equal(
+          response.headers.get('Access-Control-Allow-Origin'),
+          origin === 'http://localhost:3000' ? origin : null,
+        );
+      }
+    });
+    await t.test(
+      'missing, malformed and unknown tokens return 401',
+      async () => {
+        for (const path of ['/auth/me', '/auth/logout']) {
+          for (const header of [
+            undefined,
+            'Basic invalid',
+            'Bearer short',
+            `Bearer ${'0'.repeat(64)}`,
+          ]) {
+            const response = await fetch(base + path, {
+              method: path.endsWith('logout') ? 'POST' : 'GET',
+              headers: header ? { Authorization: header } : {},
+            });
+            assert.equal(response.status, 401);
+            const body = await response.json();
+            assert.equal(body.statusCode, 401);
+            assert.equal(body.error, 'Unauthorized');
+          }
+        }
+      },
+    );
     for (const field of ['email', 'password', 'full_name', 'student_number']) {
       await t.test(
         `signup rejects missing ${field} without creating records`,
@@ -118,16 +164,126 @@ await test('signup creates user/student atomically; login and logout persist in 
         .rowCount,
       0,
     );
+    for (const conflict of ['email', 'student_number']) {
+      await t.test(
+        `concurrent signup with duplicate ${conflict} preserves atomicity`,
+        async () => {
+          const marker = randomUUID();
+          const sharedEmail = `${marker}@example.invalid`;
+          const candidates = [
+            { ...signup, email: sharedEmail, student_number: `${marker}-a` },
+            {
+              ...signup,
+              email:
+                conflict === 'email'
+                  ? ` ${sharedEmail.toUpperCase()} `
+                  : `other-${sharedEmail}`,
+              student_number:
+                conflict === 'student_number' ? `${marker}-a` : `${marker}-b`,
+            },
+          ];
+          const emails = candidates.map((candidate) =>
+            candidate.email.trim().toLowerCase(),
+          );
+          fixtureEmails.push(...emails);
+
+          // Send both requests before awaiting either; either request may win.
+          const results = await Promise.all(
+            candidates.map(async (candidate) => {
+              const response = await fetch(base + '/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(candidate),
+              });
+              return { status: response.status, body: await response.json() };
+            }),
+          );
+          assert.deepEqual(
+            results.map((result) => result.status).sort((a, b) => a - b),
+            [201, 409],
+          );
+          const winner = results.findIndex((result) => result.status === 201);
+          const loser = 1 - winner;
+          assert.equal(
+            results[loser].body.message,
+            'Email or student number already registered',
+          );
+
+          const users = await db.query(
+            'SELECT id,email FROM users WHERE email=ANY($1::text[])',
+            [emails],
+          );
+          assert.equal(
+            users.rowCount,
+            1,
+            'The rejected request must not leave an account behind',
+          );
+          assert.equal(users.rows[0].id, results[winner].body.id);
+          const students = await db.query(
+            'SELECT user_id,student_number FROM students WHERE student_number=ANY($1::text[])',
+            [candidates.map((candidate) => candidate.student_number)],
+          );
+          assert.equal(students.rowCount, 1);
+          assert.equal(students.rows[0].user_id, users.rows[0].id);
+          assert.equal(
+            students.rows[0].student_number,
+            candidates[winner].student_number,
+          );
+
+          // Fix only the conflicting value to verify the other value remains usable.
+          const retry = { ...candidates[loser] };
+          if (conflict === 'email') retry.email = `retry-${sharedEmail}`;
+          else retry.student_number = `${marker}-retry`;
+          fixtureEmails.push(retry.email.trim().toLowerCase());
+          const created = await request(
+            'POST',
+            '/auth/register',
+            retry,
+            null,
+            201,
+          );
+          const persisted = await db.query(
+            `SELECT u.id FROM users u JOIN students s ON s.user_id=u.id
+           WHERE u.email=$1 AND s.student_number=$2`,
+            [retry.email.trim().toLowerCase(), retry.student_number],
+          );
+          assert.equal(persisted.rowCount, 1);
+          assert.equal(persisted.rows[0].id, created.id);
+        },
+      );
+    }
     const stored = (
       await db.query('SELECT password_hash FROM users WHERE id=$1', [user.id])
     ).rows[0];
     assert.notEqual(stored.password_hash, password);
-    await request(
+    const wrongPassword = await request(
       'POST',
       '/auth/login',
       { email, password: 'wrong-password-value' },
       null,
       401,
+    );
+    await t.test(
+      'unknown account and wrong password share a safe error',
+      async () => {
+        const unknownAccount = await request(
+          'POST',
+          '/auth/login',
+          {
+            email: `unknown-${suffix}@example.invalid`,
+            password,
+          },
+          null,
+          401,
+        );
+        assert.deepEqual(unknownAccount, wrongPassword);
+        assert.equal(unknownAccount.message, 'Invalid email or password');
+        const count = await db.query(
+          'SELECT count(*)::int AS count FROM auth_sessions WHERE user_id=$1',
+          [user.id],
+        );
+        assert.equal(count.rows[0].count, 0);
+      },
     );
     const { access_token: token } = await request('POST', '/auth/login', {
       email,
@@ -137,18 +293,60 @@ await test('signup creates user/student atomically; login and logout persist in 
     assert.equal(me.full_name, signup.full_name);
     assert.equal(me.student_number, suffix);
     await request('GET', '/auth/me', undefined, null, 401);
-    await request('POST', '/auth/logout', undefined, token);
-    await request('GET', '/auth/me', undefined, token, 401);
     const next = await request('POST', '/auth/login', { email, password });
+    await t.test(
+      'logout revokes only its session and repeated logout returns 401',
+      async () => {
+        assert.notEqual(next.access_token, token);
+        assert.equal(next.expires_in, 86400);
+        await request('POST', '/auth/logout', undefined, token);
+        await request('GET', '/auth/me', undefined, token, 401);
+        await request('POST', '/auth/logout', undefined, token, 401);
+        const remaining = await request(
+          'GET',
+          '/auth/me',
+          undefined,
+          next.access_token,
+        );
+        assert.equal(remaining.id, user.id);
+      },
+    );
     await db.query(
       "UPDATE auth_sessions SET expires_at=now()-interval '1 second' WHERE user_id=$1",
       [user.id],
     );
     await request('GET', '/auth/me', undefined, next.access_token, 401);
+    await request('POST', '/auth/logout', undefined, next.access_token, 401);
+    await t.test(
+      'unexpected database errors do not expose internal details',
+      async () => {
+        const pool = app.get(DatabaseService).pool;
+      const original = pool.query.bind(pool);
+        try {
+          pool.query = () => {
+            throw new Error('SELECT secret_password FROM private_table');
+          };
+          const result = await request(
+            'GET',
+            '/auth/me',
+            undefined,
+            next.access_token,
+            500,
+          );
+          assert.equal(result.message, 'Internal server error');
+          assert.equal(
+            JSON.stringify(result).includes('secret_password'),
+            false,
+          );
+        } finally {
+          pool.query = original;
+        }
+      },
+    );
     await request('GET', '/reports', undefined, null, 404);
     await request('GET', '/conversations', undefined, null, 404);
-    // Three login requests above already consumed this IP's quota.
-    for (let i = 0; i < 7; i++) {
+    // Four login requests above already consumed this IP's quota.
+    for (let i = 0; i < 6; i++) {
       await request(
         'POST',
         '/auth/login',
@@ -175,7 +373,7 @@ await test('signup creates user/student atomically; login and logout persist in 
     assert.equal(sessions.rows[0].count, 1);
   } finally {
     await db.query('DELETE FROM users WHERE email=ANY($1::text[])', [
-      [email, secondEmail],
+      fixtureEmails,
     ]);
     await app.close();
     await db.end();

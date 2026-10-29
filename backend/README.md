@@ -28,3 +28,37 @@ in Git; see the database guide for setup on another machine.
 `npm test`, `npm run test:e2e` and `npm run lint`.
 
 The frontend `/tasks` page uses email/password login, `/auth/me`, and logout from this API. The main CampusFind login/register and listing pages remain a separate localStorage UI demo; connecting those pages to this API is still pending.
+
+## HTTP configuration and verification
+
+Run commands from backend/. The server reads PORT (default 3001) and CORS_ORIGINS
+(default http://localhost:3000) from .env. PORT must be an integer from 1 to 65535.
+CORS_ORIGINS is a comma-separated list of exact HTTP(S) origins without trailing
+slashes, paths, credentials or wildcards. Example:
+
+```dotenv
+PORT=3001
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+Invalid settings fail startup. Restart after changes. The server binds to
+127.0.0.1 for local development. CORS controls browser access, not authentication.
+The frontend contributor should set NEXT_PUBLIC_API_URL to the matching backend
+URL, for example http://localhost:3001.
+
+Create a separate campusfind_auth_test database and configure its DATABASE_URL in
+ignored .env.test.local. npm run test:integration rejects database names not ending
+in _test, applies migrations and removes generated test accounts afterward. Never
+use real student data. Run npm test and npm run lint as additional checks.
+See API.md for session/error behavior and REPORTS_SCHEMA.md for the proposed next
+schema. Reports migrations and endpoints are not implemented yet.
+
+## Reports preparation and week-two review
+
+- [Reports API contract and pagination](REPORTS_API.md)
+- [Schema proposal](REPORTS_SCHEMA.md)
+- [Week-two review and remaining work](WEEK_02_REVIEW.md)
+
+The TypeScript reports contract and fixtures compile with the backend, but do not
+register routes or create database records. They prepare coordination with the
+frontend before the planned migration step.

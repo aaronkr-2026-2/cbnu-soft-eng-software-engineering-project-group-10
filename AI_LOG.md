@@ -1,5 +1,14 @@
 # AI_LOG.md
 
+## October 20 signup transaction checks — prepared on 2026-10-19
+
+**Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.
+**What I asked for:** Implement the October 20 backend task and leave committing and pushing to me.
+**What I kept as-is:** Signup service, database schema, and frontend.
+**What I changed or rejected, and why:** Added two concurrent-signup integration cases for duplicate normalized email and duplicate student number. Each checks one 201 and one 409, exactly one linked user/student pair, and a successful retry after correcting the conflicting value. Updated API.md. Existing transaction handling passed, so no service changes were needed.
+**Validation:** Build, seven integration tests against the dedicated test database, and lint passed.
+**Something the AI got wrong that I had to catch:** Earlier explanations confused already committed October 19 tests with new work. This entry describes the newly added October 20 test coverage, implemented on October 19 at my request.
+
 ## Signup required-field tests — 2026-10-19
 
 **Tool(s) used:** Codex, Node.js test runner, local PostgreSQL.
@@ -92,3 +101,23 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **What I kept as-is:** API behavior, schema and application logic.
 **What I changed or rejected, and why:** Translated backend API/setup documentation and the remaining Vietnamese frontend comments. Unstaged the previously prepared full-project addition; no commit or push was performed in this correction.
 **Something the AI got wrong that I had to catch:** The assistant had written project documentation in Vietnamese. I clarified that project content must be in English and that I will handle future pushes myself.
+
+## Backend plan October 21–28 — implemented on 2026-10-28
+
+**Tool(s) used:** Codex, Node.js test runner, Vitest, local PostgreSQL.
+**What I asked for:** Complete the remaining backend plan through October 28 after a break, without editing frontend or pushing commits.
+**What I kept as-is:** Existing signup/login/session logic, applied migrations and frontend files.
+**What I changed or rejected, and why:** Added validated PORT/CORS_ORIGINS configuration and startup URL reporting; covered missing/malformed/unknown tokens, wrong credentials, independent sessions, repeated logout, CORS and safe database-error responses. Documented session lifetime, in-memory client token policy, error handling and local setup. Proposed reports/categories/locations in REPORTS_SCHEMA.md without implementing later migrations or chat.
+**Validation:** Build, 12 integration tests and 18 unit tests passed against the dedicated test environment. Lint was rerun after correcting an unbound-method warning in the test stub.
+**Something the AI got wrong that I had to catch:** No user correction recorded in this increment. All work was performed on October 28; the plan dates are scope labels, not claimed implementation dates.
+
+## Backend plans October 29–30 — implemented on 2026-10-29
+
+**Tool(s) used:** Codex, TypeScript, Vitest, Node.js test runner, local PostgreSQL.
+**What I asked for:** Prepare backend work for the October 29 and 30 plan on Tung, leaving commit and push to me.
+**What I kept as-is:** Frontend, account logic, applied migrations and live API routes.
+**What I changed or rejected, and why:** Added reports list/detail TypeScript contracts and fictional fixtures, documented response fields, public-data exclusions, errors and cursor semantics. Added a week-two review with lessons and remaining work. No reports endpoint or migration was introduced ahead of the planned step. Team agreement on the contract remains pending frontend review.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The October 30 review was prepared on October 29, not backdated or represented as work performed on October 30.
+
+**Validation for the October 29–30 increment:** Build, 12 integration tests,
+18 unit tests, one e2e smoke test and lint passed on October 29.
