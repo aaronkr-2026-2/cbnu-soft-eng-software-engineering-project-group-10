@@ -24,6 +24,14 @@ export interface Account {
   student_number: string;
 }
 
+export async function register(fields: { full_name: string; student_number: string; email: string; password: string }): Promise<Account> {
+  return (await api.post<Account>('/auth/register', fields)).data;
+}
+
+export function isUnauthorized(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.status === 401;
+}
+
 export async function fetchTasks(): Promise<Task[]> {
   return (await api.get<Task[]>('/tasks')).data;
 }
@@ -46,6 +54,8 @@ export async function logout(token: string): Promise<void> {
 
 export function apiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
+    if (error.response?.status === 429) return 'Too many login attempts. Wait a minute before trying again.';
+    if (error.response && error.response.status >= 500) return 'The server is unavailable. Please try again later.';
     const message: unknown = error.response?.data?.message;
     if (typeof message === 'string') return message;
     if (Array.isArray(message)) return message.join(', ');

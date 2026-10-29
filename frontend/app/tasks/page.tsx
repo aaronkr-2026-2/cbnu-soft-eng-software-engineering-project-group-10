@@ -50,7 +50,7 @@ export default function TasksPage() {
 
   return <div className="container-page max-w-2xl py-12">
     <h1 className="text-3xl font-bold">Backend tasks demo</h1>
-    <p className="my-4 text-sm text-slate-600">This page uses the PostgreSQL account API. The CampusFind listing pages still use a separate browser-local demo session. Create a backend account through POST /auth/register before signing in here.</p>
+    <p className="my-4 text-sm text-slate-600">This page uses the PostgreSQL account API. This diagnostic screen uses its own in-memory session. Create an account on /register first. Listing data remains a local demo.</p>
     {!token ? <form onSubmit={signIn} className="card-base space-y-5 p-6">
       <div><label htmlFor="task-email" className="label-base">Email</label><input id="task-email" type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} className="input-base" /></div>
       <div><label htmlFor="task-password" className="label-base">Password</label><input id="task-password" type="password" autoComplete="current-password" required minLength={12} maxLength={128} value={password} onChange={event => setPassword(event.target.value)} className="input-base" /></div>

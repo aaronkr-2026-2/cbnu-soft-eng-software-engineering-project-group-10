@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { apiError, getAccount, isUnauthorized, login, logout } from '@/services/api.service';
 import { SEED_ITEMS } from '@/lib/data';
 import type { CampusItem, ItemDraft, Session } from '@/lib/types';
 
@@ -11,9 +12,8 @@ type Store = {
   items: CampusItem[];
   session: Session | null;
   ready: boolean;
-  signIn: (session: Session) => void;
-  signOut: () => void;
-  updateProfile: (name: string) => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<boolean>;
   addItem: (item: ItemDraft) => string;
   editItem: (id: string, draft: ItemDraft) => void;
   setRecovered: (id: string, recovered: boolean) => void;
@@ -35,14 +35,18 @@ export function CampusProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CampusItem[]>(SEED_ITEMS);
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const token = useRef<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState(0);
+  const [notice, setNotice] = useState('');
+  const signingOut = useRef(false);
 
   useEffect(() => {
     const saved = readLocal<CampusItem[]>(ITEMS_KEY, SEED_ITEMS);
     // Hydrate browser storage only after mount to keep server/client initial renders identical.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(Array.isArray(saved) ? saved : SEED_ITEMS);
-    const savedSession = readLocal<Session | null>(SESSION_KEY, null);
-    setSession(savedSession && typeof savedSession.email === 'string' && typeof savedSession.name === 'string' ? savedSession : null);
+    // Old demo profiles never authenticate a real account.
+    try { window.localStorage.removeItem(SESSION_KEY); } catch {}
     setReady(true);
   }, []);
 
@@ -53,20 +57,50 @@ export function CampusProvider({ children }: { children: ReactNode }) {
   }, [items, ready]);
 
   useEffect(() => {
-    if (!ready) return;
-    try {
-      if (session) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      else window.localStorage.removeItem(SESSION_KEY);
-    } catch { console.warn('CampusFind could not save the demo session.'); }
-  }, [session, ready]);
+    if (!session || !token.current) return;
+    const currentToken = token.current;
+    const expire = () => {
+      if (token.current !== currentToken) return;
+      token.current = null; setSession(null);
+      setNotice('Your session has expired. Please sign in again.');
+    };
+    const timer = window.setTimeout(expire, Math.max(0, expiresAt - Date.now()));
+    const verify = async () => {
+      if (Date.now() >= expiresAt) { expire(); return; }
+      try { await getAccount(currentToken); }
+      catch (cause) { if (isUnauthorized(cause)) expire(); }
+    };
+    window.addEventListener('focus', verify);
+    return () => { window.clearTimeout(timer); window.removeEventListener('focus', verify); };
+  }, [session, expiresAt]);
 
   const value = useMemo<Store>(() => ({
     items, session, ready,
-    signIn: (next) => setSession(next),
-    signOut: () => setSession(null),
-    updateProfile: (name) => {
-      setSession((current) => current ? { ...current, name } : current);
-      setItems((current) => current.map((item) => item.ownerEmail === session?.email ? { ...item, ownerName: name } : item));
+    signIn: async (email, password) => {
+      const result = await login(email, password);
+      try {
+        const account = await getAccount(result.access_token);
+        const previous = token.current;
+        token.current = result.access_token;
+        setExpiresAt(Date.now() + result.expires_in * 1000);
+        setSession({ name: account.full_name, email: account.email });
+        setNotice('');
+        if (previous) void logout(previous).catch(() => undefined);
+      } catch (cause) {
+        await logout(result.access_token).catch(() => undefined);
+        throw cause;
+      }
+    },
+    signOut: async () => {
+      if (signingOut.current) return false;
+      signingOut.current = true;
+      const current = token.current;
+      try { if (current) await logout(current); }
+      catch (cause) {
+        if (!isUnauthorized(cause)) { setNotice(apiError(cause)); return false; }
+      } finally { signingOut.current = false; }
+      if (token.current === current) { token.current = null; setSession(null); setNotice(''); }
+      return true;
     },
     addItem: (draft) => {
       if (!session) throw new Error('Sign in to create a post.');
@@ -83,7 +117,7 @@ export function CampusProvider({ children }: { children: ReactNode }) {
       item.id !== id || session?.email !== item.ownerEmail))
   }), [items, session, ready]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return <StoreContext.Provider value={value}>{notice && <p role="alert" className="bg-amber-50 px-6 py-3 text-sm text-amber-900">{notice}</p>}{children}</StoreContext.Provider>;
 }
 
 export function useCampus() {

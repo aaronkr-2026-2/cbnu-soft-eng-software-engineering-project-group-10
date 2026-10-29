@@ -121,3 +121,23 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 
 **Validation for the October 29–30 increment:** Build, 12 integration tests,
 18 unit tests, one e2e smoke test and lint passed on October 29.
+
+## Frontend account integration through October 28 — 2026-10-28
+
+**Tool(s) used:** Codex, Next.js local documentation, ESLint, Next.js build, Playwright with Microsoft Edge.
+**What I asked for:** Implement the frontend plan through October 28 on Thanh; leave commit and push to me.
+**What I kept as-is:** Backend code and database, existing listing fixtures and visual layout.
+**What I changed or rejected, and why:** Connected registration/login/me/logout to the shared API service; added pending/error handling and duplicate-submit guards. Replaced localStorage demo authentication with an in-memory token and server account data, expiry/focus checks and retryable logout. Made profile read-only because the backend has no profile-update endpoint. Added public environment example, setup/session documentation and a card/detail design proposal. Listing persistence remains a local demo.
+**Validation:** ESLint and production build passed. Edge browser checks with mocked API responses passed for required signup fields, 409, pending state, registration success, wrong/correct login, profile, failed/successful logout, reload sign-out and 401 expiry; no browser exceptions or mobile horizontal overflow. This does not claim end-to-end PostgreSQL verification.
+**Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The initial workspace pointed at Tung; the matching frontend checkout on Thanh was identified before editing.
+
+## Merge Tung and Thanh into main — 2026-10-29
+
+**Tool(s) used:** Codex, Git, backend test runners, ESLint and Next.js build.
+**What I asked for:** Merge both contributors' branches into main and push the merged result.
+**What I kept as-is:** Backend and frontend contributions, original commit authors, and both branches' AI log entries.
+**What I changed or rejected, and why:** Resolved the AI_LOG.md append conflict by preserving both histories. Added backend/.gitattributes to keep SQL migration files in LF format: Windows CRLF conversion caused the unchanged migration to fail the stored checksum check. No SQL or stored migration checksums were changed.
+**Something the AI got wrong that I had to catch:** No user correction recorded during this merge.
+
+**Validation:** Frontend lint/production build and backend build/lint, 18 unit tests,
+one e2e smoke test and 12 PostgreSQL integration tests passed before pushing main.

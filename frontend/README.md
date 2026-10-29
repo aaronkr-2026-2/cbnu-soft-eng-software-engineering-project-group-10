@@ -1,50 +1,51 @@
-# CampusFind frontend
+﻿# CampusFind frontend
 
-Next.js App Router frontend with React, TypeScript, Tailwind CSS v4, and Lucide icons.
+Next.js App Router with React, TypeScript, Tailwind CSS and Lucide icons.
 
 ## Run locally
 
-From this directory:
+From frontend/, run npm ci, copy .env.example to .env.local, then npm run dev.
+Open http://localhost:3000. NEXT_PUBLIC_API_URL defaults to http://localhost:3001.
+This public value is embedded at build time: restart development or rebuild after
+changing it. Never put secrets in NEXT_PUBLIC_ variables. The backend must allow
+this browser origin in CORS_ORIGINS (localhost and 127.0.0.1 are different origins).
 
-```bash
-npm install
-npm run dev
-```
+## Account flows (implemented October 28)
 
-Open http://localhost:3000. Validation commands: `npm run lint` and `npm run build`.
+- /register validates full name, student number, email, password and agreement.
+  It calls POST /auth/register, disables repeated submissions, displays errors,
+  and sends successful registrations to /login. Registration does not log in.
+- /login calls POST /auth/login followed by GET /auth/me. Profile information
+  comes from the server, not from the email address or a localStorage profile.
+- Tokens remain in memory only. Client-side navigation keeps the session; a full
+  reload or new tab requires login again. No password or token is persisted.
+- Sessions expire after the API lifetime (currently 24 hours). The client checks
+  /auth/me when the window regains focus. A 401 clears session state and shows a
+  sign-in message; protected screens expose a login link with a return path.
+- Logout calls POST /auth/logout. A successful response or 401 clears local
+  state; connection failures keep the session visible and allow retry.
+- /profile is read-only because no backend profile-update API exists yet.
+- /tasks is a diagnostic page with its own in-memory session.
 
-## Routes
+## Listings remain a demo
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Homepage with shared listings, keyword search, and lost/found filters |
-| `/items` | Browse, search, filter by type/category/location/recovery, and sort |
-| `/items/[id]` | Details, email contact, and owner management actions |
-| `/items/[id]/edit` | Edit a post owned by the current demo session |
-| `/login`, `/register` | Create a browser-local demo session |
-| `/post` | Report a lost or found item; sign-in required |
-| `/my-posts` | Current user's reports and recovery counts |
-| `/profile` | Update display name and log out |
-| `/tasks` | Backend tasks demo with email/password login and token logout |
+Homepage, browse, detail, post/edit and My posts still use browser-local fixture
+items (campusfind-demo-items-v1). Their ownership checks are UI demonstrations,
+not server authorization. No shared report API or durable image upload is wired
+up. Old campusfind-demo-session-v1 data is ignored and removed on mount.
+See REPORT_UI_PLAN.md for the October 28 card/detail proposal. Do not present
+fixture items or demo edits as real backend records.
 
-The new routes were integrated from `CampusFind-New-Routes-Patch`. The homepage keeps its hero, search, process, and call-to-action sections while sharing navigation and listing data with the new routes. Patch styles have been merged into the existing Tailwind v4 stylesheet.
+## Verification
 
-## Demo walkthrough
+Run npm run lint and npm run build. Manually exercise:
 
-1. Register with a name, valid email, and any password of at least six characters.
-2. Create a post with a title, category, location, date, and description; optionally upload a JPG/PNG/WebP image under 1 MB.
-3. Open the post from the homepage, browse page, or My posts.
-4. Edit the post, mark it recovered, reopen it, or delete it as its author.
-5. Refresh to verify browser-local persistence. Log out to view the signed-out experience.
+1. Blank/invalid signup: English field errors and focus on the first error.
+2. Successful signup: one request, then login prompt; duplicate data: show 409.
+3. Wrong password: login error; correct password: server profile appears.
+4. Client navigation keeps login; full reload signs out without restoring a demo profile.
+5. Logout succeeds and protected pages require login. Network failure allows retry.
+6. Expired/unknown token returns 401 and removes account state on focus.
+7. Keyboard navigation, labels, password visibility and narrow screens remain usable.
 
-## Data and authentication
-
-These routes use `lib/store.tsx` and `lib/data.ts`, not the NestJS API. Login does not verify passwords or email ownership; passwords are never stored. Owner checks are demo UI behavior, not server authorization. Contact buttons open `mailto:` links.
-
-Items and session are stored in `campusfind-demo-items-v1` and `campusfind-demo-session-v1` in localStorage. Data is specific to this browser and origin. Clear these keys and reload to reset the demo. Browser storage limits apply, especially when saving images.
-
-Real accounts, shared reports, durable image uploads, and authorization require backend integration.
-
-## Backend tasks screen
-
-`/tasks` uses the NestJS email/token API and is separate from the listing demo session. Set up PostgreSQL and create an account using `POST /auth/register` as documented in `../backend/API.md`. Passwords for this API must be 12?128 characters. The API defaults to `http://localhost:3001`; set `NEXT_PUBLIC_API_URL` in `.env.local` to override it before starting/building Next.js.
+Backend startup and account contract are maintained by the backend contributor.
