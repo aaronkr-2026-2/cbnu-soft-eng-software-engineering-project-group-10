@@ -343,8 +343,8 @@ await test('signup creates user/student atomically; login and logout persist in 
         }
       },
     );
-    await request('GET', '/reports', undefined, null, 404);
-    await request('GET', '/conversations', undefined, null, 404);
+    await request('GET', '/reports', undefined, null, 200);
+    await request('GET', '/conversations', undefined, null, 401);
     // Four login requests above already consumed this IP's quota.
     for (let i = 0; i < 6; i++) {
       await request(

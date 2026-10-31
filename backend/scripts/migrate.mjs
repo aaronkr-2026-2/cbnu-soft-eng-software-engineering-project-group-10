@@ -20,7 +20,7 @@ try {
   // Serialize migrations and apply the whole batch atomically.
   await client.query('BEGIN');
   transaction = true;
-  await client.query("SELECT pg_advisory_xact_lock(714013, 1)");
+  await client.query('SELECT pg_advisory_xact_lock(714013, 1)');
   await client.query('CREATE SCHEMA IF NOT EXISTS campusfind_internal');
   await client.query(`CREATE TABLE IF NOT EXISTS campusfind_internal.schema_migrations (
     name text PRIMARY KEY,
@@ -28,17 +28,38 @@ try {
     applied_at timestamptz NOT NULL DEFAULT now()
   )`);
   const directory = new URL('../migrations/', import.meta.url);
-  const files = (await readdir(directory)).filter((name) => name.endsWith('.sql')).sort();
+  const files = (await readdir(directory))
+    .filter((name) => name.endsWith('.sql'))
+    .sort();
   const applied = [];
   for (const name of files) {
     const sql = await readFile(new URL(name, directory), 'utf8');
-    const checksum = createHash('sha256').update(sql).digest('hex');
+    const normalized = sql.replaceAll('\r\n', '\n');
+    const checksum = createHash('sha256').update(normalized).digest('hex');
+    const windowsChecksum = createHash('sha256')
+      .update(normalized.replaceAll('\n', '\r\n'))
+      .digest('hex');
+    // PowerShell can append a CRLF final newline to an otherwise LF here-string.
+    const shellChecksum = createHash('sha256')
+      .update(
+        normalized.endsWith('\n')
+          ? normalized.slice(0, -1) + '\r\n'
+          : normalized,
+      )
+      .digest('hex');
     const existing = await client.query(
-      'SELECT checksum FROM campusfind_internal.schema_migrations WHERE name = $1', [name],
+      'SELECT checksum FROM campusfind_internal.schema_migrations WHERE name = $1',
+      [name],
     );
     if (existing.rowCount) {
-      if (existing.rows[0].checksum !== checksum) {
-        throw new Error('Applied migration changed; restore it and add a new migration.');
+      if (
+        ![checksum, windowsChecksum, shellChecksum].includes(
+          existing.rows[0].checksum,
+        )
+      ) {
+        throw new Error(
+          'Applied migration changed; restore it and add a new migration.',
+        );
       }
       continue;
     }
@@ -51,12 +72,19 @@ try {
   }
   await client.query('COMMIT');
   transaction = false;
-  console.log(applied.length ? `Applied: ${applied.join(', ')}` : 'Database is up to date.');
+  console.log(
+    applied.length
+      ? `Applied: ${applied.join(', ')}`
+      : 'Database is up to date.',
+  );
 } catch (error) {
   if (transaction) await client.query('ROLLBACK').catch(() => {});
   // Do not print connection URLs, passwords or server error details.
-  console.error('Migration failed. Check connectivity, permissions, existing tables and migration checksums.');
-  if (error?.code && /^[A-Z0-9]{5}$/.test(error.code)) console.error(`PostgreSQL code: ${error.code}`);
+  console.error(
+    'Migration failed. Check connectivity, permissions, existing tables and migration checksums.',
+  );
+  if (error?.code && /^[A-Z0-9]{5}$/.test(error.code))
+    console.error(`PostgreSQL code: ${error.code}`);
   process.exitCode = 1;
 } finally {
   if (connected) await client.end();

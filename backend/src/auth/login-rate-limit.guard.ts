@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 
 @Injectable()
 export class LoginRateLimitGuard implements CanActivate {
+  protected maximum = 10;
   private readonly attempts = new Map<
     string,
     { count: number; expiresAt: number }
@@ -13,8 +14,8 @@ export class LoginRateLimitGuard implements CanActivate {
     const http = context.switchToHttp();
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
-    // Use the direct peer, not untrusted forwarding headers.
-    const ip = request.socket.remoteAddress ?? 'unknown';
+    // Express uses forwarding headers only for explicitly trusted proxy addresses.
+    const ip = request.ip ?? request.socket.remoteAddress ?? 'unknown';
     const now = Date.now();
     for (const [key, entry] of this.attempts) {
       if (entry.expiresAt <= now) this.attempts.delete(key);
@@ -26,7 +27,7 @@ export class LoginRateLimitGuard implements CanActivate {
       entry = { count: 0, expiresAt: now + 60_000 };
       this.attempts.set(ip, entry);
     }
-    if (entry.count >= 10) {
+    if (entry.count >= this.maximum) {
       return this.reject(response, Math.ceil((entry.expiresAt - now) / 1000));
     }
     entry.count += 1;
@@ -36,8 +37,13 @@ export class LoginRateLimitGuard implements CanActivate {
   private reject(response: Response, retryAfter: number): never {
     response.setHeader('Retry-After', retryAfter);
     throw new HttpException(
-      'Too many login attempts. Try again later.',
+      'Too many authentication attempts. Try again later.',
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
+}
+
+@Injectable()
+export class SignupRateLimitGuard extends LoginRateLimitGuard {
+  protected override maximum = 30;
 }

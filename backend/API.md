@@ -49,21 +49,20 @@ Returns `{"success":true}` and revokes that session. Other sessions remain valid
 ## Login request limit
 
 `POST /auth/login` accepts up to **10 requests per IP in a 60-second window**,
-starting with the first request. Successful logins, incorrect passwords and
+starting with the first request. Registration has a separate 30/IP/minute limit. Successful logins, incorrect passwords and
 invalid credential input all count toward the limit. The eleventh request returns
 **429** with a `Retry-After` header indicating how many seconds to wait, before
 querying the account or deriving the password hash. Blocked requests do not extend
-the window. This limiter does not apply to other endpoints.
+the window. Authenticated report/image/chat writes also have a separate 60/user/minute limit.
 
 Counters are held in one process's memory and reset on restart. Clients sharing
 an IP share the quota. The map holds at most 10,000 active IPs to bound memory use;
-when full, new IPs receive 429 with a 60-second retry interval. The limiter uses
-the direct connection address, not `X-Forwarded-For`. Deploying behind a proxy or
+when full, new IPs receive 429 with a 60-second retry interval. The limiter uses Express request.ip: direct peer by default, or forwarded client IP only behind explicitly configured TRUST_PROXY addresses. Deploying behind a proxy or
 across multiple servers requires revisiting IP identification and shared counter
 storage. This is not complete protection against distributed brute-force attacks.
 
-This is a local development baseline. Email verification, password reset and
-frontend integration are not implemented. Report and chat APIs are not included.
+This is a local development baseline. Email/student-status verification and
+password reset remain outside scope. Reports and chat are documented in REPORTS_API.md and CHAT_API.md.
 
 ## Session policy and errors
 
@@ -97,8 +96,8 @@ without SQL, passwords or stack traces in the HTTP response. Server diagnostics
 are private and must not be published. Network/CORS failures can have no readable
 HTTP response; display a connection error in that case.
 
-## Planned reports API
+## Reports and chat API
 
-See [REPORTS_API.md](REPORTS_API.md) for the proposed public list/detail contract,
-response types, fictional fixtures and cursor pagination rules. Reports endpoints
-remain unimplemented until the later migration/read-API steps.
+See [REPORTS_API.md](REPORTS_API.md) for implemented reports/images and
+[CHAT_API.md](CHAT_API.md) for conversations/messages/SSE. See DEPLOYMENT.md for
+free demo hosting and limits. Never load-test a shared or free hosted service.

@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: campusfind
+      POSTGRES_DB: campusfind
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong URL-safe password in .env.deploy}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusfind -d campusfind"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    build: .
+    command: ["node", "scripts/migrate.mjs"]
+    environment:
+      DATABASE_URL: postgresql://campusfind:${POSTGRES_PASSWORD}@db:5432/campusfind
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://campusfind:${POSTGRES_PASSWORD}@db:5432/campusfind
+      PORT: "3001"
+      HOST: "0.0.0.0"
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set the frontend origin in .env.deploy}
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+    init: true
+    restart: unless-stopped
+volumes:
+  postgres_data:

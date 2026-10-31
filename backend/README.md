@@ -1,64 +1,71 @@
-# Step 1: Student Accounts
+﻿# CampusFind backend
 
-The current scope covers PostgreSQL and signup, login and logout.
-Reports, chat, image uploads and performance benchmarks are not implemented.
+NestJS + PostgreSQL backend for student accounts, lost/found reports, bounded
+image uploads and private conversations. Implemented on October 30, 2026 following
+the remaining backend plan through December. Frontend integration is separate.
 
-## First-time setup
+## Local setup
 
-Run `npm ci`, create a PostgreSQL database, copy `.env.example` to `.env`, and set `DATABASE_URL`. Run `npm run db:migrate` followed by `npm run start:dev`. The portable database helper below only works on a machine where `.local/pgsql` and `.local/pgdata` already exist.
+Use Node 24.x and PostgreSQL 17. From backend/:
 
-## Run on the configured local machine
-
-```powershell
-npm run db:local:start
+```sh
+npm ci
+# Copy .env.example to .env, then configure DATABASE_URL privately.
 npm run db:migrate
 npm run start:dev
 ```
 
-API: http://127.0.0.1:3001. If a backend process is already running in the
-background, stop it before starting another instance on the same port.
-Portable PostgreSQL is stored in `.local/` and is not a Windows service;
-start it again after rebooting. Local binaries and credentials are not included
-in Git; see the database guide for setup on another machine.
+On the original configured Windows machine, npm run db:local:start starts the
+portable PostgreSQL in ignored .local/. Other machines need their own database;
+portable binaries and credentials are not committed. API defaults to
+http://127.0.0.1:3001. Stop your own old API process before restarting on that port.
 
-- [Database structure](DATABASE.md)
-- [Signup, login and logout examples](API.md)
+Set PORT, HOST and CORS_ORIGINS as documented in .env.example. The API validates
+port/origin/bind/proxy settings. /health/live reports process health and
+/health/ready checks PostgreSQL. Database pool size is five, with connection and
+statement timeouts. Never publish .env or database dumps.
 
-`npm run test:integration` uses a dedicated test database. Other checks are
-`npm test`, `npm run test:e2e` and `npm run lint`.
+## Implemented features
 
-The frontend `/tasks` page uses email/password login, `/auth/me`, and logout from this API. The main CampusFind login/register and listing pages remain a separate localStorage UI demo; connecting those pages to this API is still pending.
+- Signup/login/me/logout with hashed passwords and opaque, hashed session tokens.
+- Seeded category/location catalogs; reports list/detail/create/edit/recovery,
+  owner-only writes, soft deletion, search and stable cursor pagination.
+- Up to three decoded/re-encoded WebP images per report; atomic database storage.
+- Private two-member conversations linked to reports, paginated history,
+  idempotent sends and authenticated SSE refresh notifications.
+- Startup migrations, safe errors, local rate limits, health checks, Docker
+  packaging, a free-cloud deployment guide, and local benchmark tooling.
 
-## HTTP configuration and verification
+API.md documents accounts; REPORTS_API.md documents report operations;
+CHAT_API.md documents messages and realtime. DEPLOYMENT.md explains Render Free
++ Neon Free and the optional Docker/VPS route. DATABASE.md describes migrations.
+BENCHMARK_RESULTS.md records actual local measurements and limitations.
 
-Run commands from backend/. The server reads PORT (default 3001) and CORS_ORIGINS
-(default http://localhost:3000) from .env. PORT must be an integer from 1 to 65535.
-CORS_ORIGINS is a comma-separated list of exact HTTP(S) origins without trailing
-slashes, paths, credentials or wildcards. Example:
+## Verification
 
-```dotenv
-PORT=3001
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+Create a separate database with a name ending in _test, configure its
+DATABASE_URL in ignored .env.test.local, then run:
+
+```sh
+npm run lint
+npm test
+npm run test:e2e
+npm run test:integration
 ```
 
-Invalid settings fail startup. Restart after changes. The server binds to
-127.0.0.1 for local development. CORS controls browser access, not authentication.
-The frontend contributor should set NEXT_PUBLIC_API_URL to the matching backend
-URL, for example http://localhost:3001.
+Integration builds first, applies migrations only to the test DB, and cleans its
+own fictional accounts/reports. Tests cover unauthorized writes, cursor precision,
+image validation, message retries and revocation of active event streams.
+Do not point tests or seed scripts at a real student database.
 
-Create a separate campusfind_auth_test database and configure its DATABASE_URL in
-ignored .env.test.local. npm run test:integration rejects database names not ending
-in _test, applies migrations and removes generated test accounts afterward. Never
-use real student data. Run npm test and npm run lint as additional checks.
-See API.md for session/error behavior and REPORTS_SCHEMA.md for the proposed next
-schema. Reports migrations and endpoints are not implemented yet.
+## Boundaries
 
-## Reports preparation and week-two review
+This is a single-instance demo baseline, not a production security certification
+or a million-RPS system. Email/student status verification, password reset,
+moderation, account deletion, distributed rate limits and object storage are not
+implemented. Images consume PostgreSQL storage; use small demo data on free tiers.
+Auth tokens stay in client memory; reload requires login. SSE requires an
+Authorization-capable fetch client and REST resync on every reconnect.
 
-- [Reports API contract and pagination](REPORTS_API.md)
-- [Schema proposal](REPORTS_SCHEMA.md)
-- [Week-two review and remaining work](WEEK_02_REVIEW.md)
-
-The TypeScript reports contract and fixtures compile with the backend, but do not
-register routes or create database records. They prepare coordination with the
-frontend before the planned migration step.
+The original read-only /tasks and root Hello World routes are retained for course
+compatibility; they are not the reports API. No frontend files are changed here.

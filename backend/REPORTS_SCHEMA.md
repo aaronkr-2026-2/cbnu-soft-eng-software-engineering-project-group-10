@@ -1,7 +1,6 @@
 # Reports schema proposal — October 28, 2026
 
-Design only: no reports migration or endpoint is included. Agree on the list and
-detail contract next, then introduce migrations in the planned implementation step.
+Historical design from October 28. Implemented on October 30 by migrations 002?005; DATABASE.md and REPORTS_API.md describe the current schema and behavior. Additional recovered_at/deleted_at fields, images and private chat are now implemented.
 
 | Table | Column | Proposed type and constraint |
 | --- | --- | --- |
