@@ -101,3 +101,32 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **What I changed or rejected, and why:** Connected registration/login/me/logout to the shared API service; added pending/error handling and duplicate-submit guards. Replaced localStorage demo authentication with an in-memory token and server account data, expiry/focus checks and retryable logout. Made profile read-only because the backend has no profile-update endpoint. Added public environment example, setup/session documentation and a card/detail design proposal. Listing persistence remains a local demo.
 **Validation:** ESLint and production build passed. Edge browser checks with mocked API responses passed for required signup fields, 409, pending state, registration success, wrong/correct login, profile, failed/successful logout, reload sign-out and 401 expiry; no browser exceptions or mobile horizontal overflow. This does not claim end-to-end PostgreSQL verification.
 **Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The initial workspace pointed at Tung; the matching frontend checkout on Thanh was identified before editing.
+
+## Frontend MVP completion for deployment testing — 2026-10-31
+
+**Tool(s) used:** Codex, installed Next.js documentation, ESLint, TypeScript,
+Playwright with Microsoft Edge, and the existing backend against a dedicated
+local PostgreSQL test database.
+
+**What I asked for:** Implement the remaining frontend plan through December on
+Thanh under the existing TanThanh1603 Git identity, leaving commit and push to me.
+
+**What I kept as-is:** Backend source code, database migrations and Git identity.
+No cloud resource was created, and the local daily plan remains ignored.
+
+**What changed and why:** Replaced local report fixtures with real catalogs,
+search/filter/cursor APIs, direct detail pages, owner actions and image upload.
+Added private inbox/history/send/retry and authenticated SSE with reconnect
+recovery across missed pages. Kept tokens in memory, added responsive/error states
+and deployment documentation. Updated Next.js to 16.4.3 and compatible dependency
+patches after audit findings.
+
+**Validation:** See frontend/VALIDATION.md for final checks and remaining deployment
+limitations. Browser tests include mocked failures and two real test accounts;
+they do not certify cloud performance or production capacity.
+
+**Corrections during implementation:** Browser tests caught a search debounce
+navigation race, which was fixed using URL-only filter updates and pending-search
+feedback. Initial test locators also needed correction to distinguish application
+alerts from Next.js route announcements. No user acceptance or deployment is
+claimed by these automated checks.

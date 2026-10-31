@@ -1,7 +1,8 @@
 ﻿# Report card and detail UI proposal — October 28, 2026
 
-Design only; current listing data is explicitly a local fixture. No report API
-integration or contract for pagination is introduced in this increment.
+Historical design proposal from October 28. The October 31 implementation now
+uses the real report API; see README.md and lib/report-types.ts for current behavior.
+The notes below describe the original planning increment.
 
 ## Card
 
