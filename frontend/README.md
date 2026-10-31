@@ -1,51 +1,87 @@
-﻿# CampusFind frontend
+# CampusFind frontend
 
-Next.js App Router with React, TypeScript, Tailwind CSS and Lucide icons.
+Next.js App Router frontend for the NestJS/PostgreSQL CampusFind API. Project
+content is English. The implementation replaces browser-local report fixtures
+with server-backed data.
 
 ## Run locally
 
-From frontend/, run npm ci, copy .env.example to .env.local, then npm run dev.
-Open http://localhost:3000. NEXT_PUBLIC_API_URL defaults to http://localhost:3001.
-This public value is embedded at build time: restart development or rebuild after
-changing it. Never put secrets in NEXT_PUBLIC_ variables. The backend must allow
-this browser origin in CORS_ORIGINS (localhost and 127.0.0.1 are different origins).
+Use Node 24.x. From frontend/:
 
-## Account flows (implemented October 28)
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+# Set NEXT_PUBLIC_API_URL to your running backend origin.
+npm run dev
+```
 
-- /register validates full name, student number, email, password and agreement.
-  It calls POST /auth/register, disables repeated submissions, displays errors,
-  and sends successful registrations to /login. Registration does not log in.
-- /login calls POST /auth/login followed by GET /auth/me. Profile information
-  comes from the server, not from the email address or a localStorage profile.
-- Tokens remain in memory only. Client-side navigation keeps the session; a full
-  reload or new tab requires login again. No password or token is persisted.
-- Sessions expire after the API lifetime (currently 24 hours). The client checks
-  /auth/me when the window regains focus. A 401 clears session state and shows a
-  sign-in message; protected screens expose a login link with a return path.
-- Logout calls POST /auth/logout. A successful response or 401 clears local
-  state; connection failures keep the session visible and allow retry.
-- /profile is read-only because no backend profile-update API exists yet.
-- /tasks is a diagnostic page with its own in-memory session.
+The default frontend is http://localhost:3000 and the example API is
+http://localhost:3001. Configure backend CORS_ORIGINS to match the frontend origin.
+The backend must include migrations 002–005 and the reports/images/chat APIs.
+The older backend copied into this branch may not yet include those changes;
+use the reviewed Tung implementation until the branches are merged.
 
-## Listings remain a demo
+## Available flows
 
-Homepage, browse, detail, post/edit and My posts still use browser-local fixture
-items (campusfind-demo-items-v1). Their ownership checks are UI demonstrations,
-not server authorization. No shared report API or durable image upload is wired
-up. Old campusfind-demo-session-v1 data is ignored and removed on mount.
-See REPORT_UI_PLAN.md for the October 28 card/detail proposal. Do not present
-fixture items or demo edits as real backend records.
+- Register, login, profile and logout against the real account API.
+- Public report cards and direct detail links, with loading/error/empty states.
+- Keyword search (350 ms debounce), type/status/category/location filters and
+  cursor pagination. Filters live in the URL and survive navigation.
+- Create, edit, recover/reopen and confirm deletion of owned reports.
+- Select, preview, upload and remove photos, including progress and failures.
+  Reports save first; photos are uploaded from the report detail screen.
+- Inbox, private message history, older-page loading and safe send retries.
+- Authenticated SSE refresh events, reconnect backoff and REST recovery across
+  missed pages. Streams pause while the browser tab is hidden.
+- Responsive layouts, explicit form labels, keyboard focus and a skip link.
 
-## Verification
+## Session and API behavior
 
-Run npm run lint and npm run build. Manually exercise:
+Tokens exist only in memory. Refreshing or opening another tab requires login.
+401 responses clear the session. Logging out waits for server confirmation;
+a network failure does not incorrectly claim the token was revoked.
+Reports and conversations are never stored in localStorage.
 
-1. Blank/invalid signup: English field errors and focus on the first error.
-2. Successful signup: one request, then login prompt; duplicate data: show 409.
-3. Wrong password: login error; correct password: server profile appears.
-4. Client navigation keeps login; full reload signs out without restoring a demo profile.
-5. Logout succeeds and protected pages require login. Network failure allows retry.
-6. Expired/unknown token returns 401 and removes account state on focus.
-7. Keyboard navigation, labels, password visibility and narrow screens remain usable.
+Public reports intentionally omit author identity. Ownership controls are
+derived from the paginated /me/reports endpoint, while the backend remains the
+authority for every write. This lookup may take longer for accounts with many
+reports; a future API-owned permission flag could avoid that scan.
 
-Backend startup and account contract are maintained by the backend contributor.
+Images resolve relative URLs against the API origin, use browser loading and
+fallbacks, and do not require a paid image service. The backend validates content.
+Uploads are not idempotent: after an ambiguous network failure, refresh the report
+before retrying. Message retries preserve their UUID and body.
+
+## Checks
+
+```powershell
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+The default browser tests use mocked HTTP responses and Microsoft Edge, on desktop
+and mobile viewport projects. Install Edge or select an installed Playwright
+channel through PLAYWRIGHT_CHANNEL. The tests start a production server at
+localhost:3030; build first and leave that port free. For the mocked suite, build
+with the example NEXT_PUBLIC_API_URL=http://localhost:3001.
+
+The opt-in tests/live.spec.ts uses LIVE_API_URL pointing to a dedicated local test
+backend. It creates disposable accounts with a frontend-live-20261031- prefix
+and uses two browser contexts for a report, upload and private chat. Never point
+it at a real student database. An operator must clean these fixture accounts and
+their related records from the test database after running it. The test redirects
+the example API URL to the selected local backend; hosting configuration still
+needs a separate deploy smoke test.
+
+See DEPLOYMENT.md for hosting configuration and VALIDATION.md for verified results
+and outstanding checks. Test traces/screenshots are ignored and may contain
+disposable credentials; do not publish them.
+
+## Scope
+
+This is a demo MVP. Profile editing, password recovery, email/student verification,
+moderation, read receipts, chat attachments and notification badges are not exposed
+because the backend has no corresponding contract. No million-request capacity
+claim is made. Production deployment and a classroom demo rehearsal remain
+operator steps; this change does not push or deploy.

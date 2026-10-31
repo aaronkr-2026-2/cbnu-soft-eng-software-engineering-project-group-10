@@ -1,40 +1,60 @@
-import {
-  Backpack, BottleWine, CreditCard, Headphones, Laptop, Package, Plug, Umbrella,
-  Wallet, type LucideIcon
-} from 'lucide-react';
-import type { CampusItem } from '@/lib/types';
-
-export function ItemVisual({ item, large = false, className = '' }: { item: CampusItem; large?: boolean; className?: string }) {
-  let Icon: LucideIcon = Package;
-  let colors = 'from-blue-50 via-sky-100 to-indigo-100 text-blue-600';
-  const lower = item.title.toLowerCase();
-  if (lower.includes('airpods') || lower.includes('earphone')) Icon = Headphones;
-  else if (lower.includes('card') || lower.includes('id')) Icon = CreditCard;
-  else if (lower.includes('umbrella')) Icon = Umbrella;
-  else if (lower.includes('charger')) Icon = Plug;
-  else if (lower.includes('wallet')) Icon = Wallet;
-  else if (lower.includes('bottle')) Icon = BottleWine;
-  else if (lower.includes('laptop')) Icon = Laptop;
-  else if (item.category === 'Bags') Icon = Backpack;
-  if (item.category === 'Accessories') colors = 'from-amber-50 via-orange-100 to-rose-100 text-orange-600';
-  if (item.category === 'ID & Cards') colors = 'from-purple-50 via-violet-100 to-fuchsia-100 text-violet-600';
-  if (item.category === 'Other') colors = 'from-emerald-50 via-teal-100 to-cyan-100 text-emerald-600';
-  if (item.category === 'Bags') colors = 'from-slate-100 via-blue-100 to-slate-200 text-slate-600';
+'use client';
+import { useState } from 'react';
+import { Package } from 'lucide-react';
+import { imageUrl } from '@/services/api.service';
+import type { Report } from '@/lib/report-types';
+export function ReportPhoto({
+  src,
+  alt,
+  className = '',
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState('');
+  if (!src || failed === src)
+    return (
+      <div
+        className={`flex items-center justify-center bg-blue-50 text-slate-500 ${className}`}
+      >
+        <span className="flex items-center gap-2">
+          <Package size={28} /> Image unavailable
+        </span>
+      </div>
+    );
+  // API images are already resized; avoid a separate image optimization service.
   return (
-    <div className={`relative flex items-center justify-center overflow-hidden bg-gradient-to-br ${colors} ${className}`}>
-      {item.image ? (
-        // User-selected local image, kept in browser storage in this UI demo.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
-      ) : (
-        <>
-          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full border-[20px] border-white/35" />
-          <div className="absolute -bottom-12 -left-8 h-44 w-44 rounded-full border-[22px] border-white/25" />
-          <div className={`relative flex items-center justify-center rounded-[28px] border border-white/80 bg-white/55 shadow-soft backdrop-blur-sm ${large ? 'h-36 w-36' : 'h-24 w-24'}`}>
-            <Icon strokeWidth={1.45} size={large ? 72 : 48} />
-          </div>
-        </>
-      )}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className={`object-cover ${className}`}
+      onError={() => setFailed(src)}
+    />
+  );
+}
+export function ItemVisual({
+  item,
+  className = '',
+}: {
+  item: Report;
+  className?: string;
+  large?: boolean;
+}) {
+  return item.images[0] ? (
+    <ReportPhoto
+      src={imageUrl(item.images[0].url)}
+      alt={item.title}
+      className={`w-full ${className}`}
+    />
+  ) : (
+    <div
+      className={`flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-500 ${className}`}
+    >
+      <Package size={64} strokeWidth={1.3} />
+      <span className="sr-only">No photo provided</span>
     </div>
   );
 }

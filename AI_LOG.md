@@ -131,6 +131,7 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 **Validation:** ESLint and production build passed. Edge browser checks with mocked API responses passed for required signup fields, 409, pending state, registration success, wrong/correct login, profile, failed/successful logout, reload sign-out and 401 expiry; no browser exceptions or mobile horizontal overflow. This does not claim end-to-end PostgreSQL verification.
 **Something the AI got wrong that I had to catch:** No user correction recorded for this increment. The initial workspace pointed at Tung; the matching frontend checkout on Thanh was identified before editing.
 
+
 ## Merge Tung and Thanh into main — 2026-10-29
 
 **Tool(s) used:** Codex, Git, backend test runners, ESLint and Next.js build.
@@ -141,6 +142,7 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 
 **Validation:** Frontend lint/production build and backend build/lint, 18 unit tests,
 one e2e smoke test and 12 PostgreSQL integration tests passed before pushing main.
+
 ## Remaining backend implementation — October 30–31, 2026
 
 **Tool(s) used:** Codex, NestJS, PostgreSQL, Vitest and Node.js test runner.
@@ -159,3 +161,32 @@ been verified on a cloud host. No commit or push was performed.
 **Limitations:** This is a single-instance demo baseline. Email verification,
 password recovery, moderation and distributed rate limiting remain outside this
 implementation. User review and frontend integration are still required.
+
+## Frontend MVP completion for deployment testing — 2026-10-31
+
+**Tool(s) used:** Codex, installed Next.js documentation, ESLint, TypeScript,
+Playwright with Microsoft Edge, and the existing backend against a dedicated
+local PostgreSQL test database.
+
+**What I asked for:** Implement the remaining frontend plan through December on
+Thanh under the existing TanThanh1603 Git identity, leaving commit and push to me.
+
+**What I kept as-is:** Backend source code, database migrations and Git identity.
+No cloud resource was created, and the local daily plan remains ignored.
+
+**What changed and why:** Replaced local report fixtures with real catalogs,
+search/filter/cursor APIs, direct detail pages, owner actions and image upload.
+Added private inbox/history/send/retry and authenticated SSE with reconnect
+recovery across missed pages. Kept tokens in memory, added responsive/error states
+and deployment documentation. Updated Next.js to 16.4.3 and compatible dependency
+patches after audit findings.
+
+**Validation:** See frontend/VALIDATION.md for final checks and remaining deployment
+limitations. Browser tests include mocked failures and two real test accounts;
+they do not certify cloud performance or production capacity.
+
+**Corrections during implementation:** Browser tests caught a search debounce
+navigation race, which was fixed using URL-only filter updates and pending-search
+feedback. Initial test locators also needed correction to distinguish application
+alerts from Next.js route announcements. No user acceptance or deployment is
+claimed by these automated checks.
