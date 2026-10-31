@@ -1,4 +1,4 @@
-/** Planned public API types. No reports endpoints are registered yet. */
+/** Public reports API types. */
 export type ReportType = 'lost' | 'found';
 export type ReportStatus = 'open' | 'recovered';
 
@@ -14,6 +14,8 @@ export interface ReportSummary {
   title: string;
   category: CatalogReference;
   location: CatalogReference;
+  recovered_at: string | null;
+  images: { id: string; url: string; width: number; height: number }[];
   /** YYYY-MM-DD campus calendar date (Asia/Seoul), not a timestamp. */
   occurred_on: string;
   /** UTC ISO 8601 timestamps. */
@@ -35,6 +37,11 @@ export interface ReportListResponse {
 export interface ReportListQuery {
   limit?: number;
   cursor?: string;
+  report_type?: ReportType;
+  status?: ReportStatus;
+  category_id?: string;
+  location_id?: string;
+  q?: string;
 }
 
 export const REPORT_PAGE_DEFAULT = 20;

@@ -121,3 +121,22 @@ The AI used the term "Nest.js API Routes" for the backend. I noticed that this w
 
 **Validation for the October 29–30 increment:** Build, 12 integration tests,
 18 unit tests, one e2e smoke test and lint passed on October 29.
+
+## Remaining backend implementation — October 30–31, 2026
+
+**Tool(s) used:** Codex, NestJS, PostgreSQL, Vitest and Node.js test runner.
+**What I asked for:** Implement the remaining backend plan through December and
+prepare deployment with a zero-budget option, leaving Git push to me.
+**What changed:** Added report/catalog migrations and APIs, ownership checks,
+search and cursor pagination, validated image storage, private conversations,
+idempotent messages and authenticated SSE refresh events. Added health checks,
+runtime configuration, Docker packaging, Render/Neon deployment instructions
+and bounded local benchmark tools.
+**What stayed unchanged:** Frontend files and the original auth migration.
+**Validation:** Initial local checks passed: 28 unit tests, one e2e test,
+21 integration tests, build and lint. BENCHMARK_RESULTS.md records short local
+measurements and their limitations. Deployment and Docker execution have not
+been verified on a cloud host. No commit or push was performed.
+**Limitations:** This is a single-instance demo baseline. Email verification,
+password recovery, moderation and distributed rate limiting remain outside this
+implementation. User review and frontend integration are still required.

@@ -5,6 +5,8 @@ export const reportDetailFixture = {
   id: '00000000-0000-4000-8000-000000000001',
   report_type: 'lost',
   status: 'open',
+  recovered_at: null,
+  images: [],
   title: 'Blue notebook near the library',
   description:
     'Fictional example: a plain blue notebook with no identifying details.',

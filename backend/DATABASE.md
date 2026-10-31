@@ -1,34 +1,42 @@
-﻿# Database — Step 1
+﻿# Database
 
-Application database: `campusfind_auth` (local PostgreSQL).
-Test database: `campusfind_auth_test`.
+PostgreSQL 17, application configured by DATABASE_URL. Existing account data is
+preserved; migrations are forward-only additions. Run npm run db:migrate before
+starting the API. The migration runner serializes runs, applies each batch in a
+transaction and checks checksums. LF/CRLF-only variants are accepted for existing
+checksums; SQL changes to an applied migration are still rejected.
 
-| Table | Columns | Purpose |
-| --- | --- | --- |
-| users | id, email, password_hash, created_at | Login accounts |
-| students | user_id, full_name, student_number | Student details; user_id references users.id |
-| auth_sessions | token_hash, user_id, expires_at, created_at | Login sessions; logout deletes the session |
+| Migration | Tables/indexes |
+| --- | --- |
+| 001_auth.sql | users, students, auth_sessions |
+| 002_reports.sql | categories, locations, reports and list/FK indexes; catalog seeds |
+| 003_images.sql | report_images: metadata and bounded bytea content |
+| 004_chat.sql | conversations, conversation_members, messages and history indexes |
+| 005_report_search.sql | partial GIN full-text index for non-deleted reports |
 
-- Each student has one account. Signup creates both records in one transaction.
-- Emails are unique ignoring case; student numbers are also unique.
-- Passwords are hashed with scrypt; plaintext passwords are not stored.
-- Student numbers are self-reported and have no verification workflow yet.
-- Sessions expire after 24 hours. Only token hashes are stored in the database.
-- `campusfind_internal.schema_migrations` tracks applied migrations.
+Signup inserts users/students atomically. Email uniqueness ignores case and
+surrounding whitespace. Student numbers are unique but self-reported, not verified.
+Session tokens are stored only as SHA-256 hashes and expire after 24 hours.
 
-This step has one migration: `migrations/001_auth.sql`.
-Run `npm run db:migrate`; repeated runs do not create duplicate tables.
+Reports reference their author and catalogs with restrictive foreign keys. Active
+catalogs are available for new choices; historical reports retain inactive labels.
+Soft deletion hides public reports and atomically deletes their images. Conversation
+history remains available only to its members; deleted-report rooms are read-only.
+Recovery status and recovered_at have a database consistency constraint.
 
-Connection settings are in `.env`, with test settings in `.env.test.local`.
-Do not commit these files. Use `npm run db:local:start` to start PostgreSQL and
-`npm run db:local:stop` to stop it without deleting data. On another machine with
-PostgreSQL installed, create a database and configure DATABASE_URL.
+Images are fully decoded, stripped of metadata and normalized to WebP by sharp.
+Their data and metadata share one row, so upload/delete failures roll back together.
+No external filesystem/object-store orphan cleanup is needed. The three-image cap
+is enforced while holding the report row lock. At most 1 MiB per stored image;
+large deployments should migrate blobs to object storage with a durable cleanup job.
 
-The previous expanded implementation was removed from the current source.
-The old `campusfind` and `campusfind_test` databases remain as local backups and
-are no longer used by the application. A dump and the old migrations are stored
-in `.local/previous-scope/`. Do not edit migrations already applied to the old
-databases; this smaller implementation uses new databases and a separate migration history.
+Each conversation has one requester and the report owner, inserted atomically.
+UNIQUE(report_id,requester_id) prevents duplicate rooms. Messages reference their
+membership and have UNIQUE(conversation_id,sender_id,client_message_id). Report
+and room locks serialize sends against deletion and preserve message commit order.
 
-The next reports/categories/locations design is in [REPORTS_SCHEMA.md](REPORTS_SCHEMA.md).
-It is a proposal only; the live schema remains unchanged.
+Application/test databases remain separate. Seeds only accept names ending in
+_test. The old .local/previous-scope backups are unchanged. Back up the entire
+application DB (including images), test restore on a separate DB, and do not edit
+old migrations. See DEPLOYMENT.md for operations and REPORTS_SCHEMA.md for the
+original design history (the migration files now define the implemented schema).
