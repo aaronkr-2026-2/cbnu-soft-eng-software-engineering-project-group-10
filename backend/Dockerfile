@@ -16,4 +16,4 @@ COPY migrations ./migrations
 COPY scripts/migrate.mjs ./scripts/migrate.mjs
 USER node
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "node scripts/migrate.mjs && exec node dist/main.js"]
